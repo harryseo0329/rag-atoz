@@ -109,6 +109,7 @@ def get_rag_chain():
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
         "And if there is markdown in your answer, please show it as a table."
+        "Even if there is a \"*\" in the email, please display it as is."
         "\n\n"
         "{context}"
     )
