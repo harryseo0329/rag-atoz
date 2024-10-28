@@ -142,6 +142,6 @@ def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"abc123"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"abcd123"}})
 
     return ai_response
