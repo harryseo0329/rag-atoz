@@ -1,4 +1,3 @@
-
 from langchain_upstage import UpstageEmbeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_upstage import ChatUpstage
@@ -10,6 +9,8 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
+from langchain_chroma import Chroma
+
 from config import answer_examples
 
 store = {}
@@ -19,7 +20,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     return store[session_id]
 
 #retriever
-def get_retriever():
+def get_retriever(db_type):
     #임베딩
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
@@ -28,16 +29,20 @@ def get_retriever():
 
     #이미 생성된 파인콘 인덱스로 database구성
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
-    
-    
 
+    if db_type == 'pinecone':
+        #이미 생성된 파인콘 인덱스로 database구성
+        database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
+    else:
+        database = Chroma(collection_name='chroma-rules-2',persist_directory="/ai/chroma2", embedding_function=embedding)
+    
     retriever = database.as_retriever(search_kwargs={'k': 4})
     
     return retriever
 
 def get_history_retriever():
     llm = get_llm()
-    retriever = get_retriever()
+    retriever = get_retriever("pinecone") #db선택 pinecone, chroma
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
@@ -73,13 +78,15 @@ def get_dictionary_chain():
         "직급 중 선임 -> 선임(과장)",
         "직급 중 수석 -> 수석(부장)",
         "직급 중 이사 -> 이사(임원)",
-        "직급 중 상무 -> 상무(임원)"
+        "직급 중 상무 -> 상무(임원)",
+        "사람의 이름을 나타내는 표현 -> 사원의 이름이 OOO인 사람"
     ]
     llm = get_llm()
     prompt = ChatPromptTemplate.from_template(f"""
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
         그런 경우에는 질문만 리턴해주세요.
+        그리고 사원의 정보를 물어보는 질문에는 그 질문 끝에 "사원정보 표에 해당 이름이 없다면 찾을 수 없다고 말해주세요." 라는 문구를 덧붙여 주세요. 
         사전: {dictionary}                        
                                             
         질문: {{question}}
@@ -134,14 +141,12 @@ def get_rag_chain():
         output_messages_key="answer",
     ).pick('answer')
 
-    #print(conversaional_rag_chain)
-
     return conversaional_rag_chain
 
 def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"abcd123"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"aasdfasdbcd123"}})
 
-    return ai_response
+    return ai_response 
