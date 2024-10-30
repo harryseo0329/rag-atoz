@@ -36,7 +36,7 @@ def get_retriever(db_type):
     else:
         database = Chroma(collection_name='chroma-rules-2',persist_directory="/ai/chroma2", embedding_function=embedding)
     
-    retriever = database.as_retriever(search_kwargs={'k': 2})
+    retriever = database.as_retriever(search_kwargs={'k': 4})
     
     return retriever
 
