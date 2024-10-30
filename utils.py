@@ -5,7 +5,7 @@ from PIL import Image
 def get_image(file_path, file_nm):
     pre_path = ""
     os_seperator = ""
-
+    
     if os.name == 'nt':
         pre_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag_atoz\\images\\"
         os_seperator = "\\"

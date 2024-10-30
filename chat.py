@@ -3,12 +3,13 @@ from dotenv import load_dotenv
 from llm import get_ai_response
 
 from utils import get_image
+import os
 
 load_dotenv()
 
 st.set_page_config(page_title="A to Z Uracle", page_icon="🤖")
 st.title("🤖 A to Z Uracle")
-st.caption("Uracle에 대한 모든것!")
+st.caption("Uracle에 대한 모든것!"+os.path)
 
 if 'message_list' not in st.session_state:
     st.session_state.message_list = []
