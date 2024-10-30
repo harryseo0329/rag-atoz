@@ -9,7 +9,7 @@ load_dotenv()
 
 st.set_page_config(page_title="A to Z Uracle", page_icon="🤖")
 st.title("🤖 A to Z Uracle")
-st.caption("Uracle에 대한 모든것!"+os.path)
+st.caption("Uracle에 대한 모든것!"+os.getcwd())
 
 if 'message_list' not in st.session_state:
     st.session_state.message_list = []
