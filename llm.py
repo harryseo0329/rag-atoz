@@ -25,7 +25,7 @@ def get_retriever(db_type):
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    index_name = "atoz-index"
+    index_name = "atoz-index-2"
 
     #이미 생성된 파인콘 인덱스로 database구성
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
@@ -86,7 +86,8 @@ def get_dictionary_chain():
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
         그런 경우에는 질문만 리턴해주세요.
-        그리고 사원의 정보를 물어보는 질문에는 그 질문 끝에 "사원정보 표에 해당 이름이 없다면 찾을 수 없다고 말해주세요." 라는 문구를 덧붙여 주세요. 
+        그리고 사원의 정보를 물어보는 질문에는 그 질문 끝에 ". 사원정보 표에 해당 이름이 없다면 찾을 수 없다고 말해주세요." 라는 문구를 덧붙여 주세요. 
+        그리고 질문 끝에 ". 출처가 있다면 출처도 같이보여주세요." 라는 문구를 덧붙여 주세요.                   
         사전: {dictionary}                        
                                             
         질문: {{question}}
@@ -116,6 +117,7 @@ def get_rag_chain():
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
         "And if there is markdown in your answer, please show it as a table."
+        "그리고 만약 답변에 출처가 포함되어 있다면, 해당 출처도 링크형태로 함께 보여줘야 합니다."
         "\n\n"
         "{context}"
     )
@@ -147,6 +149,6 @@ def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"aasdfasdbcd123"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"acd123"}})
 
     return ai_response 
