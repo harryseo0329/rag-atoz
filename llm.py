@@ -25,7 +25,7 @@ def get_retriever(db_type):
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    index_name = "atoz-index-2"
+    index_name = "atoz-index"
 
     #이미 생성된 파인콘 인덱스로 database구성
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
@@ -36,13 +36,15 @@ def get_retriever(db_type):
     else:
         database = Chroma(collection_name='chroma-rules-2',persist_directory="/ai/chroma2", embedding_function=embedding)
     
-    retriever = database.as_retriever(search_kwargs={'k': 4})
+    retriever = database.as_retriever(search_kwargs={'k': 2})
     
     return retriever
 
 def get_history_retriever():
     llm = get_llm()
     retriever = get_retriever("pinecone") #db선택 pinecone, chroma
+
+    
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
@@ -50,6 +52,7 @@ def get_history_retriever():
         "without the chat history. Do NOT answer the question, "
         "just reformulate it if needed and otherwise return it as is."
     )
+    
 
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
@@ -78,16 +81,13 @@ def get_dictionary_chain():
         "직급 중 선임 -> 선임(과장)",
         "직급 중 수석 -> 수석(부장)",
         "직급 중 이사 -> 이사(임원)",
-        "직급 중 상무 -> 상무(임원)",
-        "사람의 이름을 나타내는 표현 -> 사원의 이름이 OOO인 사람"
+        "직급 중 상무 -> 상무(임원)"
     ]
     llm = get_llm()
     prompt = ChatPromptTemplate.from_template(f"""
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
         그런 경우에는 질문만 리턴해주세요.
-        그리고 사원의 정보를 물어보는 질문에는 그 질문 끝에 ". 사원정보 표에 해당 이름이 없다면 찾을 수 없다고 말해주세요." 라는 문구를 덧붙여 주세요. 
-        그리고 질문 끝에 ". 출처가 있다면 출처도 같이보여주세요." 라는 문구를 덧붙여 주세요.                   
         사전: {dictionary}                        
                                             
         질문: {{question}}
@@ -117,7 +117,6 @@ def get_rag_chain():
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
         "And if there is markdown in your answer, please show it as a table."
-        "그리고 만약 답변에 출처가 포함되어 있다면, 해당 출처도 링크형태로 함께 보여줘야 합니다."
         "\n\n"
         "{context}"
     )
@@ -149,6 +148,6 @@ def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"acd123"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"abc123"}})
 
     return ai_response 

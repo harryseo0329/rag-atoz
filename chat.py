@@ -29,7 +29,7 @@ if user_question := st.chat_input(placeholder="유라클에 대한 궁금한 내
         st.session_state.message_list.append({"role":"ai", "content":ai_message})
     
     #image 불러오기 예시
-    st.image(get_image("seo","townhall_ai_202410301030012221.jpg"), caption="참고이미지", use_column_width=True)    
+    #st.image(get_image("seo","townhall_ai_20241030103001222.jpg"), caption="참고이미지", use_column_width=True)    
 
     
     
