@@ -10,7 +10,8 @@ def get_image(file_path, file_nm):
         pre_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag_atoz\\images\\"
         os_seperator = "\\"
     else:
-        pre_path = "/ai/rag_atoz/images/"
+        #pre_path = "/ai/rag_atoz/images/"
+        pre_path = "./rag_atoz/images/"
         os_seperator = "/"
 
     image = {}
