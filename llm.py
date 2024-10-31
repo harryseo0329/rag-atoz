@@ -51,9 +51,9 @@ def get_history_retriever():
         "formulate a standalone question which can be understood "
         "without the chat history. Do NOT answer the question, "
         "just reformulate it if needed and otherwise return it as is."
+        "If the question is about employee information, ignore the chat history entirely and provide an answer based solely on the question."
     )
-    
-
+    contextualize_q_system_prompt=""
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualize_q_system_prompt),
@@ -61,7 +61,7 @@ def get_history_retriever():
             ("human", "{input}"),
         ]
     )
-
+    
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, contextualize_q_prompt
     )
@@ -77,6 +77,7 @@ def get_llm():
 def get_dictionary_chain():
     
     dictionary = [
+        "*님의 * 알려줘 -> 이름이 *인 사람의 * 알려줘",
         "직급 중 주임 -> 주임(대리)",
         "직급 중 선임 -> 선임(과장)",
         "직급 중 수석 -> 수석(부장)",
@@ -132,8 +133,19 @@ def get_rag_chain():
     history_aware_retriever = get_history_retriever()
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+    # Add invoke logging
+    def question_answer_chain_with_logging(input_data):
+        print("\n\nInvoking question_answer_chain with input:", input_data)
+        output = question_answer_chain.invoke(input_data)
+        print("\n\nOutput from question_answer_chain:", output)
+        print("\n--------------------------------------------------------------------")
+        return output
     
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
+    #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
+      
     conversaional_rag_chain = RunnableWithMessageHistory(
         rag_chain,
         get_session_history,
@@ -146,8 +158,17 @@ def get_rag_chain():
 
 def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
+
+    # Add invoke logging
+    def dictionary_chain_with_logging(input_data):
+        print("\n\nInvoking dictionary_chain with input:", input_data)
+        output = dictionary_chain.invoke(input_data)
+        print("\n\nOutput from dictionary_chain:", output)
+        print("\n--------------------------------------------------------------------")
+        return output
+
     rag_chain = get_rag_chain()
-    atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"abc123"}})
+    atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab1cd223"}})
 
     return ai_response 
