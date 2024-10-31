@@ -43,14 +43,17 @@ def get_retriever(db_type):
 def get_history_retriever():
     llm = get_llm()
     retriever = get_retriever("pinecone") #db선택 pinecone, chroma
+
+    
     contextualize_q_system_prompt = (
         "Given a chat history and the latest user question "
         "which might reference context in the chat history, "
         "formulate a standalone question which can be understood "
         "without the chat history. Do NOT answer the question, "
         "just reformulate it if needed and otherwise return it as is."
+        "If the question is about employee information, ignore the chat history entirely and provide an answer based solely on the question."
     )
-
+    contextualize_q_system_prompt=""
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualize_q_system_prompt),
@@ -58,7 +61,7 @@ def get_history_retriever():
             ("human", "{input}"),
         ]
     )
-
+    
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, contextualize_q_prompt
     )
@@ -74,19 +77,18 @@ def get_llm():
 def get_dictionary_chain():
     
     dictionary = [
+        "*님의 * 알려줘 -> 이름이 *인 사람의 * 알려줘",
         "직급 중 주임 -> 주임(대리)",
         "직급 중 선임 -> 선임(과장)",
         "직급 중 수석 -> 수석(부장)",
         "직급 중 이사 -> 이사(임원)",
-        "직급 중 상무 -> 상무(임원)",
-        "사람의 이름을 나타내는 표현 -> 사원의 이름이 OOO인 사람"
+        "직급 중 상무 -> 상무(임원)"
     ]
     llm = get_llm()
     prompt = ChatPromptTemplate.from_template(f"""
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
         그런 경우에는 질문만 리턴해주세요.
-        그리고 사원의 정보를 물어보는 질문에는 그 질문 끝에 "사원정보 표에 해당 이름이 없다면 찾을 수 없다고 말해주세요." 라는 문구를 덧붙여 주세요. 
         사전: {dictionary}                        
                                             
         질문: {{question}}
@@ -131,8 +133,19 @@ def get_rag_chain():
     history_aware_retriever = get_history_retriever()
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+    # Add invoke logging
+    def question_answer_chain_with_logging(input_data):
+        print("\n\nInvoking question_answer_chain with input:", input_data)
+        output = question_answer_chain.invoke(input_data)
+        print("\n\nOutput from question_answer_chain:", output)
+        print("\n--------------------------------------------------------------------")
+        return output
     
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
+    #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
+      
     conversaional_rag_chain = RunnableWithMessageHistory(
         rag_chain,
         get_session_history,
@@ -145,8 +158,17 @@ def get_rag_chain():
 
 def get_ai_response(user_message):
     dictionary_chain = get_dictionary_chain()
+
+    # Add invoke logging
+    def dictionary_chain_with_logging(input_data):
+        print("\n\nInvoking dictionary_chain with input:", input_data)
+        output = dictionary_chain.invoke(input_data)
+        print("\n\nOutput from dictionary_chain:", output)
+        print("\n--------------------------------------------------------------------")
+        return output
+
     rag_chain = get_rag_chain()
-    atoz_chain = {"input":dictionary_chain} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"aasdfasdbcd123"}})
+    atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab1cd223"}})
 
     return ai_response 
