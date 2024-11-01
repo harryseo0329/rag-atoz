@@ -12,6 +12,8 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 
 from config import answer_examples
+from logger import logger
+
 
 store = {}
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
@@ -136,10 +138,10 @@ def get_rag_chain():
 
     # Add invoke logging
     def question_answer_chain_with_logging(input_data):
-        print("\n\nInvoking question_answer_chain with input:", input_data)
+        logger.log_custom("Invoking question_answer_chain with input:\n%s", input_data)
         output = question_answer_chain.invoke(input_data)
-        print("\n\nOutput from question_answer_chain:", output)
-        print("\n--------------------------------------------------------------------")
+        logger.log_custom("Output from question_answer_chain:\n%s", output)
+        logger.log_custom("--------------------------------------------------------------------")
         return output
     
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
@@ -161,10 +163,10 @@ def get_ai_response(user_message):
 
     # Add invoke logging
     def dictionary_chain_with_logging(input_data):
-        print("\n\nInvoking dictionary_chain with input:", input_data)
+        logger.log_custom("Invoking dictionary_chain with input:\n%s", input_data)
         output = dictionary_chain.invoke(input_data)
-        print("\n\nOutput from dictionary_chain:", output)
-        print("\n--------------------------------------------------------------------")
+        logger.log_custom("Output from dictionary_chain:%s", output)
+        logger.log_custom("--------------------------------------------------------------------")
         return output
 
     rag_chain = get_rag_chain()
