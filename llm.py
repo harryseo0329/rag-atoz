@@ -9,6 +9,9 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
+from langchain.retrievers import ChainingRetriever, BM25Retriever
+from langchain.text_splitter import TokenTextSplitter
+
 from langchain_chroma import Chroma
 
 from config import answer_examples
@@ -29,18 +32,22 @@ def get_retriever(db_type):
     #파인콘 인덱스명
     index_name = "atoz-index"
 
-    #이미 생성된 파인콘 인덱스로 database구성
-    database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
-
     if db_type == 'pinecone':
         #이미 생성된 파인콘 인덱스로 database구성
         database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     else:
         database = Chroma(collection_name='chroma-rules-2',persist_directory="/ai/chroma2", embedding_function=embedding)
     
-    retriever = database.as_retriever(search_kwargs={'k': 4})
+    #의미중심 리트리버
+    dense_retriever = database.as_retriever(search_kwargs={'k': 4})
+
+    #키워드중심 리트리버
+    bm25_retriever = BM25Retriever.from_documents(database.get_documents(), tokenizer=TokenTextSplitter())
+
+    # 앙상블 방식으로 retriever들을 결합 (ChainingRetriever 사용)
+    ensemble_retriever = ChainingRetriever(retrievers=[dense_retriever, bm25_retriever])
     
-    return retriever
+    return ensemble_retriever
 
 def get_history_retriever():
     llm = get_llm()
@@ -172,6 +179,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab12cd123"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab1cd123"}})
 
     return ai_response 
