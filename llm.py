@@ -119,7 +119,8 @@ def get_rag_chain():
         "the question. If you don't know the answer, say that you "
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
-        "And if there is markdown in your answer, please show it as a table."
+        "And if there is markdown table in your answer, please show it as a table."
+        "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
         "\n\n"
         "{context}"
     )
@@ -171,6 +172,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab1cd223"}})
+    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab12cd123"}})
 
     return ai_response 
