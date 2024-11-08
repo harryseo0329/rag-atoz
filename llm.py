@@ -9,49 +9,51 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
-from langchain.retrievers import ChainingRetriever, BM25Retriever
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
 from langchain.text_splitter import TokenTextSplitter
-
-from langchain_chroma import Chroma
 
 from config import answer_examples
 from logger import logger
 
 
+global_question = ""
 store = {}
+
 def get_session_history(session_id: str) -> BaseChatMessageHistory:
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
 #retriever
-def get_retriever(db_type):
+def get_retriever():
     #임베딩
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
     index_name = "atoz-index"
 
-    if db_type == 'pinecone':
-        #이미 생성된 파인콘 인덱스로 database구성
-        database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
-    else:
-        database = Chroma(collection_name='chroma-rules-2',persist_directory="/ai/chroma2", embedding_function=embedding)
+    database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
     #의미중심 리트리버
     dense_retriever = database.as_retriever(search_kwargs={'k': 4})
-
+    dense_retriever2 = database.as_retriever()
+    
     #키워드중심 리트리버
-    bm25_retriever = BM25Retriever.from_documents(database.get_documents(), tokenizer=TokenTextSplitter())
-
-    # 앙상블 방식으로 retriever들을 결합 (ChainingRetriever 사용)
-    ensemble_retriever = ChainingRetriever(retrievers=[dense_retriever, bm25_retriever])
+    filter_criteria = {'source': {'$in': ['../dept-user-markdown-table.json', '../atoz-crawling.txt']}}
+    target_documents = dense_retriever.get_relevant_documents(global_question, filters=filter_criteria)
+    bm25_retriever = BM25Retriever.from_documents(target_documents, tokenizer=TokenTextSplitter())
+    
+    # 앙상블 방식으로 retriever들을 결합 
+    ensemble_retriever = EnsembleRetriever(
+        retrievers=[dense_retriever, bm25_retriever], weights=[0.5, 0.5]
+    )
     
     return ensemble_retriever
 
 def get_history_retriever():
     llm = get_llm()
-    retriever = get_retriever("pinecone") #db선택 pinecone, chroma
+    retriever = get_retriever()
 
     
     contextualize_q_system_prompt = (
@@ -143,7 +145,7 @@ def get_rag_chain():
     history_aware_retriever = get_history_retriever()
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-
+    """
     # Add invoke logging
     def question_answer_chain_with_logging(input_data):
         logger.log_custom("Invoking question_answer_chain with input:\n%s", input_data)
@@ -151,9 +153,10 @@ def get_rag_chain():
         logger.log_custom("Output from question_answer_chain:\n%s", output)
         logger.log_custom("--------------------------------------------------------------------")
         return output
-    
-    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
-    #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    """
+
+    #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
+    rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
     
       
     conversaional_rag_chain = RunnableWithMessageHistory(
@@ -167,6 +170,8 @@ def get_rag_chain():
     return conversaional_rag_chain
 
 def get_ai_response(user_message):
+    global global_question 
+    global_question = user_message
     dictionary_chain = get_dictionary_chain()
 
     # Add invoke logging
@@ -179,6 +184,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":user_message},config={"configurable":{"session_id":"ab1cd123"}})
+    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd1234"}})
 
     return ai_response 
