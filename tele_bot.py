@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from llm import get_ai_response
 import streamlit as st
 import re
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -34,7 +33,8 @@ def handler(msg):
             if command == "/dir" or command == "/목록":
                 filepath = " ".join(args)
                 if filepath.strip() == "":
-                    bot.sendMessage(chat_id, "/dir [대상폴더] 로 입력해주세요.")
+                    filelist = tele_mode.get_dir_list("./files")
+                    bot.sendMessage(chat_id, filelist)
                 else:
                     filelist = tele_mode.get_dir_list(filepath)
                     bot.sendMessage(chat_id, filelist)
@@ -50,18 +50,19 @@ def handler(msg):
                 w = " ".join(args)
                 output = tele_mode.money_translate(w)
                 bot.sendMessage(chat_id, output)
-            elif command[0:4] == "/get":
+            elif command[0:4] == "/get" or command == "/파일":
                 filepath = " ".join(args)
-                if os.path.exists(filepath):
+                logger.log_custom("filepath:\n%s", filepath)
+                if os.path.exists("./files/" +filepath):
                     try:
                         if command == "/getfile":
-                            bot.sendDocument(chat_id, open(filepath, "rb"))
+                            bot.sendDocument(chat_id, open("./files/" + filepath, "rb"))
                         elif command == "/getimage":
-                            bot.sendPhoto(chat_id, open(filepath, "rb"))
+                            bot.sendPhoto(chat_id, open("./files/" +filepath, "rb"))
                         elif command == "/getaudio":
-                            bot.sendAudio(chat_id, open(filepath, "rb"))
+                            bot.sendAudio(chat_id, open("./files/" +filepath, "rb"))
                         elif command == "/getvideo":
-                            bot.sendVideo(chat_id, open(filepath, "rb"))
+                            bot.sendVideo(chat_id, open("./files/" +filepath, "rb"))
                     except Exception as e:
                         bot.sendMessage(chat_id, "파일 전송 실패 {}".format(e))
                 else:
