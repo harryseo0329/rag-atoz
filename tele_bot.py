@@ -46,10 +46,6 @@ def handler(msg):
                     bot.sendMessage(chat_id, "기본 날씨는 삼성역 입니다.")
                 weather = tele_mode.get_weather(w)
                 bot.sendMessage(chat_id, weather)
-            elif command == "/money":
-                w = " ".join(args)
-                output = tele_mode.money_translate(w)
-                bot.sendMessage(chat_id, output)
             elif command[0:4] == "/get" or command == "/파일":
                 filepath = " ".join(args)
                 logger.log_custom("filepath:\n%s", filepath)
