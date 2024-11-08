@@ -85,6 +85,7 @@ def handler(msg):
                     bot.sendMessage(chat_id, output)       
         else :
             print(str_message)
+            bot.sendMessage(chat_id, "대화 생성중입니다....")
             ai_response = get_ai_response(str_message) 
             result_str2 = st.write_stream(ai_response)
             # 데이터 이스케이프 처리
