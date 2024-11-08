@@ -56,11 +56,7 @@ def add_entry_to_file(keyword, value, file_path='dic.py', backup_dir='backups'):
     value_exists = check_keyword_exists(value, dictionary)
 
     if keyword_exists or value_exists:
-        print(f"키워드 '{keyword}' 또는 값 '{value}'가 이미 존재합니다.")
-        confirm = input("계속해서 추가하시겠습니까? (y/n): ").lower()
-        if confirm != 'y':
-            print("항목이 추가되지 않았습니다.")
-            return
+        return(f"키워드 '{keyword}' 또는 값 '{value}'가 이미 존재합니다.")
 
     # 파일 백업
     if os.path.exists(file_path):
@@ -78,15 +74,16 @@ def add_entry_to_file(keyword, value, file_path='dic.py', backup_dir='backups'):
             if line.strip() == 'dictionary = [':
                 file.write(f'    "{new_entry}",\n')
 
-    print(f"'{new_entry}'가 파일에 추가되었습니다.")
+    return(f"'{new_entry}'가 파일에 추가되었습니다.")
 
 # 사용자의 키워드와 값을 각각 입력 받기
-keyword = input("키워드를 입력하세요: ")
-value = input("값을 입력하세요: ")
-add_entry_to_file(keyword, value)
+if __name__ == "__main__":
+    keyword = input("키워드를 입력하세요: ")
+    value = input("값을 입력하세요: ")
+    add_entry_to_file(keyword, value)
 
-# 새로 파일을 읽어서 dictionary를 출력
-from dic import dictionary
+    # 새로 파일을 읽어서 dictionary를 출력
+    from dic import dictionary
 
-for item in dictionary:
-    print(item)
+    for item in dictionary:
+        print(item)
