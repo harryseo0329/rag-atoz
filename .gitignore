@@ -1,3 +1,7 @@
 .venv
 .env
 *.pyc
+__pycache__/
+__pycache__/dic.cpython-311.pyc
+__pycache__/llm.cpython-311.pyc
+__pycache__/config.cpython-311.pyc
