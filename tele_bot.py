@@ -90,7 +90,7 @@ def handler(msg):
             result_str2 = st.write_stream(ai_response)
             # 데이터 이스케이프 처리
             escaped_data = escape_markdown(result_str2)
-            bot.sendMessage(chat_id, str(escaped_data), 'MarkdownV2')
+            bot.sendMessage(chat_id, str(escaped_data), parse_mode='MarkdownV2')
 
 bot = telepot.Bot(os.getenv("TELEGRAM_TOKEN"))
 bot.message_loop(handler, run_forever=True)
