@@ -37,11 +37,12 @@ def get_retriever():
     
     #의미중심 리트리버
     dense_retriever = database.as_retriever(search_kwargs={'k': 4})
-    dense_retriever2 = database.as_retriever()
     
     #키워드중심 리트리버
     filter_criteria = {'source': {'$in': ['../dept-user-markdown-table.json', '../atoz-crawling.txt']}}
-    target_documents = dense_retriever.get_relevant_documents(global_question, filters=filter_criteria)
+    #target_documents = dense_retriever.invoke(global_question, filters=filter_criteria)
+    target_documents = database.similarity_search(query=global_question, filter=filter_criteria, k=4)
+    
     bm25_retriever = BM25Retriever.from_documents(target_documents, tokenizer=TokenTextSplitter())
     
     # 앙상블 방식으로 retriever들을 결합 
