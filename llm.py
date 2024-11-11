@@ -36,7 +36,7 @@ def get_retriever():
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
     #의미중심 리트리버
-    dense_retriever = database.as_retriever(search_kwargs={'k': 4})
+    dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
     
     #키워드중심 리트리버
     filter_criteria = {'source': {'$in': ['../dept-user-markdown-table.json', '../atoz-crawling.txt']}}
