@@ -43,7 +43,7 @@ def get_retriever():
     #target_documents = dense_retriever.invoke(global_question, filters=filter_criteria)
     target_documents = database.similarity_search(query=global_question, filter=filter_criteria, k=4)
     
-    bm25_retriever = BM25Retriever.from_documents(target_documents, tokenizer=TokenTextSplitter())
+    bm25_retriever = BM25Retriever.from_documents(target_documents, tokenizer=TokenTextSplitter()) 
     
     # 앙상블 방식으로 retriever들을 결합 
     ensemble_retriever = EnsembleRetriever(
