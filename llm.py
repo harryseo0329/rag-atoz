@@ -15,7 +15,7 @@ from langchain.text_splitter import TokenTextSplitter
 
 from config import answer_examples
 from logger import logger
-
+from dic import dictionary
 
 global_question = ""
 store = {}
@@ -88,20 +88,14 @@ def get_llm():
 #dictionary 
 def get_dictionary_chain():
     
-    dictionary = [
-        "*님의 * 알려줘 -> 이름이 *인 사람의 * 알려줘",
-        "직급 중 주임 -> 주임(대리)",
-        "직급 중 선임 -> 선임(과장)",
-        "직급 중 수석 -> 수석(부장)",
-        "직급 중 이사 -> 이사(임원)",
-        "직급 중 상무 -> 상무(임원)"
-    ]
+    myDictionary = dictionary
+
     llm = get_llm()
     prompt = ChatPromptTemplate.from_template(f"""
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
         그런 경우에는 질문만 리턴해주세요.
-        사전: {dictionary}                        
+        사전: {myDictionary}                        
                                             
         질문: {{question}}
     """)
