@@ -9,13 +9,21 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
-from langchain.retrievers import EnsembleRetriever
-from langchain_community.retrievers import BM25Retriever
-from langchain.text_splitter import TokenTextSplitter
-
 from config import answer_examples
 from logger import logger
 from dic import dictionary
+
+from utils import (
+    stopwords,
+    get_sparse_encoder_path
+)
+from harry_pinecone import (
+    init_pinecone_index,
+    PineconeKiwiHybridRetriever
+)
+import os
+
+import time
 
 global_question = ""
 store = {}
@@ -25,32 +33,40 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
+
 #retriever
 def get_retriever():
+    start_time = time.time()
     #임베딩
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    index_name = "atoz-index"
+    index_name = "atoz-index2"
 
-    database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
+    #database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
     #의미중심 리트리버
-    dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
-    
-    #키워드중심 리트리버
-    filter_criteria = {'source': {'$in': ['../dept-user-markdown-table.json', '../atoz-crawling.txt']}}
-    #target_documents = dense_retriever.invoke(global_question, filters=filter_criteria)
-    target_documents = database.similarity_search(query=global_question, filter=filter_criteria, k=4)
-    
-    bm25_retriever = BM25Retriever.from_documents(target_documents, tokenizer=TokenTextSplitter()) 
-    
-    # 앙상블 방식으로 retriever들을 결합 
-    ensemble_retriever = EnsembleRetriever(
-        retrievers=[dense_retriever, bm25_retriever], weights=[0.5, 0.5]
+    #dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
+
+    pinecone_params = init_pinecone_index(
+        index_name=index_name,  # Pinecone 인덱스 이름
+        namespace="harryseo-namespace-01",  # Pinecone Namespace
+        api_key=os.environ["PINECONE_API_KEY"],  # Pinecone API Key
+        sparse_encoder_path=get_sparse_encoder_path(),  # Sparse Encoder 저장경로(save_path)
+        stopwords=stopwords(),  # 불용어 사전
+        tokenizer="kiwi",
+        embeddings=embedding,  # Dense Embedder
+        top_k=5,  # Top-K 문서 반환 개수
+        alpha=0.5,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
     )
-    
-    return ensemble_retriever
+
+    #하이브리드 리트리버
+    pinecone_retriever = PineconeKiwiHybridRetriever(**pinecone_params)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    logger.log_custom("소요시간 : %s", elapsed_time)
+    return pinecone_retriever
 
 def get_history_retriever():
     llm = get_llm()

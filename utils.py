@@ -1,4 +1,5 @@
 
+import requests
 import os
 from PIL import Image
 
@@ -26,3 +27,28 @@ def get_image(file_path, file_nm):
         #print(f"오류 발생: {e}")
     
     return image
+
+def stopwords():
+    f = open('./korean_stopwords.txt','r',encoding='utf-8')
+    contents = f.read()
+    f.close()
+
+    # 응답으로부터 텍스트 데이터를 받아옵니다.
+    stopwords_data = contents
+
+    # 텍스트 데이터를 줄 단위로 분리합니다.
+    stopwords = stopwords_data.splitlines()
+
+    # 각 줄에서 여분의 공백 문자(개행 문자 등)를 제거합니다.
+    return [word.strip() for word in stopwords]
+
+def get_sparse_encoder_path():
+    sparse_encoder_path = ""
+    
+    if os.name == 'nt':
+        sparse_encoder_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\sparse_encoder.pkl"
+    else:
+        sparse_encoder_path = "/ai/rag-atoz/sparse_encoder.pkl"
+
+    return sparse_encoder_path
+
