@@ -29,7 +29,7 @@ def get_image(file_path, file_nm):
     return image
 
 def stopwords():
-    f = open('./korean_stopwords.txt','r',encoding='utf-8')
+    f = open('/ai/rag-atoz/korean_stopwords.txt','r',encoding='utf-8')
     contents = f.read()
     f.close()
 
