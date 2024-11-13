@@ -1,0 +1,48 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Streamlit",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "E:/uracle_ai_git/chat.py"  // chat.py 경로에 맞게 수정
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Streamlit admin",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "E:/uracle_ai_git/admin.py"  // admin.py 경로에 맞게 수정
+            ],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: Streamlit uracle",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "args": [
+                "run",
+                "E:/uracle_ai_git/uracle.py"  // uracle.py 경로에 맞게 수정
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}

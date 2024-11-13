@@ -6,7 +6,7 @@ st.title("사내 문서 관리 어드민 페이지")
 st.write("사내 문서를 업로드하고 AI 모델을 학습시킬 수 있습니다.")
 
 # 파일 업로드 기능
-uploaded_file = st.file_uploader("문서를 업로드하세요", type=["txt", "pdf", "docx", "xlsx", "png", "jpg", "jpeg", "pptx"])
+uploaded_file = st.file_uploader("문서를 업로드하세요", type=["txt", "pdf", "docx", "doc", "xlsx", "png", "jpg", "jpeg", "pptx"])
 
 if uploaded_file is not None:
     
@@ -22,9 +22,4 @@ if uploaded_file is not None:
     # 완료 메시지 표시
     st.success("문서가 성공적으로 저장 및 학습되었습니다!")
     
-    
-# chat.py로 이동하는 버튼 추가
-if st.button("Chat 페이지로 이동"):
-    # chat.py가 실행 중인 URL로 이동 (예: http://localhost:8502)
-    webbrowser.open("http://localhost:8504")
 
