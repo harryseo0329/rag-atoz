@@ -57,7 +57,7 @@ def get_retriever():
         stopwords=stopwords(),  # 불용어 사전
         tokenizer="kiwi",
         embeddings=embedding,  # Dense Embedder
-        top_k=5,  # Top-K 문서 반환 개수
+        top_k=3,  # Top-K 문서 반환 개수
         alpha=0.5,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
     )
     
