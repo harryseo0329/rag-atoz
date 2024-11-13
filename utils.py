@@ -29,16 +29,22 @@ def get_image(file_path, file_nm):
     return image
 
 def stopwords():
-    f = open('/ai/rag-atoz/korean_stopwords.txt','r',encoding='utf-8')
+    if os.name == 'nt':
+        stopwords_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\korean_stopwords.txt"
+    else:
+        stopwords_path = "/ai/rag-atoz/korean_stopwords.txt"
+
+    f = open(stopwords_path,'r',encoding='utf-8')
     contents = f.read()
-    f.close()
+    
 
     # 응답으로부터 텍스트 데이터를 받아옵니다.
     stopwords_data = contents
 
     # 텍스트 데이터를 줄 단위로 분리합니다.
     stopwords = stopwords_data.splitlines()
-
+    
+    f.close()
     # 각 줄에서 여분의 공백 문자(개행 문자 등)를 제거합니다.
     return [word.strip() for word in stopwords]
 
