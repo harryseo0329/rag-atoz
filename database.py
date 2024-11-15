@@ -133,12 +133,12 @@ def convert_pptx_to_pdf_images(pptx_path, save_dir="C:\\Users\\uracle\\Desktop\\
     
     # LibreOffice를 사용하여 PPTX를 PDF로 변환
     result = subprocess.run(
-        [LIBREOFFICE_PATH, "--headless", "--convert-to", "pdf", pptx_path, "--outdir", os.path.dirname(pdf_path), "--embed-fonts"],
+        [LIBREOFFICE_PATH, "--headless", "--convert-to", "pdf", pptx_path, "--outdir", os.path.dirname(pdf_path)],
         capture_output=True, text=True
     )
     
     if result.returncode != 0:
-        print("LibreOffice 변환 실패:", result.stderr)
+        logger.log_custom("LibreOffice 변환 실패:%s", result.stderr)
         raise Exception("PPTX to PDF 변환 실패")
 
     if not os.path.exists(pdf_path):
