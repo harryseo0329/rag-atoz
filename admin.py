@@ -6,7 +6,7 @@ import time
 
 def show_page():
 	logger.log_custom("어드민 페이지")
-	st.title("사내 문서 관리 어드민 페이지")
+	st.title("사내 문서 관리 관리자")
 	st.write("사내 문서를 업로드하고 AI 모델을 학습시킬 수 있습니다.")
 
 	if 'uploaded_file' not in st.session_state:
