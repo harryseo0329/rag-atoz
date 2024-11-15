@@ -124,6 +124,7 @@ def get_rag_chain():
         "the question. If you don't know the answer, say that you "
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
+        "And if there is an `image_path` in the metadata of retrieved context to answer, please add it as a Markdown image after the answer."
         "And if there is markdown table in your answer, please show it as a table."
         "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
         "\n\n"
