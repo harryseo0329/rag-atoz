@@ -41,34 +41,17 @@ def get_retriever():
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    #index_name = "atoz-index2"
-    index_name = "atoz-index"
+    index_name = os.getenv('INDEX_NAME')
 
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
     #의미중심 리트리버
     dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
-    '''
-    pinecone_params = init_pinecone_index(
-        index_name=index_name,  # Pinecone 인덱스 이름
-        namespace="harryseo-namespace-01",  # Pinecone Namespace
-        api_key=os.environ["PINECONE_API_KEY"],  # Pinecone API Key
-        sparse_encoder_path=get_sparse_encoder_path(),  # Sparse Encoder 저장경로(save_path)
-        stopwords=stopwords(),  # 불용어 사전
-        tokenizer="kiwi",
-        embeddings=embedding,  # Dense Embedder
-        top_k=5,  # Top-K 문서 반환 개수
-        alpha=0.5,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
-    )
-    '''
-
-    #하이브리드 리트리버
-    #pinecone_retriever = PineconeKiwiHybridRetriever(**pinecone_params)
-
+    
     end_time = time.time()
     elapsed_time = end_time - start_time
     logger.log_custom("소요시간 : %s", elapsed_time)
-    return dense_retriever #pinecone_retriever
+    return dense_retriever 
 
 def get_history_retriever():
     llm = get_llm()
