@@ -23,23 +23,18 @@ load_dotenv()
 # Pinecone 클라이언트 생성
 pc = pinecone.Pinecone(api_key=os.getenv('PINECONE_API_KEY'), environment=os.getenv('PINECONE_ENV'))
 
-# Tesseract OCR 경로 설정
-tesseract_base_path = os.path.join("libs", "tesseract")
-pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-#os.path.join(tesseract_base_path, "tesseract.exe")
-logger.log_custom("pytesseract.pytesseract.tesseract_cmd:%s",pytesseract.pytesseract.tesseract_cmd)
-os.environ["TESSDATA_PREFIX"] = "C:\\Program Files\\Tesseract-OCR\\tessdata"
-#os.path.join(tesseract_base_path, "tessdata")
-logger.log_custom("os.environ[\"TESSDATA_PREFIX\"]:%s",os.environ["TESSDATA_PREFIX"])
- 
-#poppler_path = 'libs/poppler/Library/bin'  # poppler 경로 설정 
-poppler_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\libs\\poppler\\Library\\bin"
-
 # OS에 따른 LibreOffice 경로 설정
 if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    os.environ["TESSDATA_PREFIX"] = "C:\\Program Files\\Tesseract-OCR\\tessdata"
+    poppler_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\libs\\poppler\\Library\\bin"
     LIBREOFFICE_PATH = "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
 else:
+    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
+    os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata"
+    poppler_path = "/usr/bin"
     LIBREOFFICE_PATH = "/usr/lib/libreoffice/program/soffice"  # linux 경로
+    
 
 # 파일 형식별 처리 함수 정의
 
@@ -127,6 +122,10 @@ def preprocess_image_for_ocr(image_path):
 
 def convert_pptx_to_pdf_images(pptx_path, save_dir="C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\images\\poppler"):
     """PPTX 파일을 PDF로 변환 후, PDF의 각 페이지를 이미지로 변환하여 상대 경로로 이미지 파일 경로를 반환합니다."""
+    if platform.system() == "Windows":
+        save_dir = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\images\\poppler"
+    else:
+        save_dir = "/ai/rag-atoz/images/poppler"
     os.makedirs(save_dir, exist_ok=True)
     
     # PDF 파일 경로 설정 (temp 폴더에 임시로 저장)
