@@ -202,13 +202,13 @@ def process_and_store_document(uploaded_file, file_type):
 
                 # 파일명과 확장자 추출
                 image_file_name, image_file_extension = os.path.splitext(os.path.basename(image_files[i]))
-
+                image_url = os.getenv('IMAGE_URL')+"/poppler/"+image_file_name+image_file_extension
                 documents.append(Document(
-                    page_content=combined_content,
+                    page_content=combined_content+f"\n\n![{Image}]({image_url}) \"참고 이미지\"" ,
                     metadata={
                         "slide_index": i + 1,
                         #"image_path": image_files[i],
-                        "image_path": os.getenv('IMAGE_URL')+"/poppler/"+image_file_name+image_file_extension,
+                        "image_path": image_url,
                         "source": file_name
                     }
                 ))

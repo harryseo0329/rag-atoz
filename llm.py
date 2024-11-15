@@ -124,7 +124,7 @@ def get_rag_chain():
         "the question. If you don't know the answer, say that you "
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
-        "And if there is an `image_path` in the metadata of retrieved context to answer, please add it as a Markdown image after the answer."
+        "And if there is `image_path` in the metadata of retrieved context to answer, convert the URL value to a markdown image and add it to the end of the answer."
         "And if there is markdown table in your answer, please show it as a table."
         "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
         "\n\n"
@@ -142,18 +142,30 @@ def get_rag_chain():
     history_aware_retriever = get_history_retriever()
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    """
+    
     # Add invoke logging
+    '''
     def question_answer_chain_with_logging(input_data):
         logger.log_custom("Invoking question_answer_chain with input:\n%s", input_data)
-        output = question_answer_chain.invoke(input_data)
+        output = question_answer_chain.invoke(input_data, streaming=True)
+
+        answer_image = ""
+        for doc in input_data["context"]:
+            image_path = doc.metadata.get("image_path")
+            if image_path:
+                logger.log_custom("image_path:%s",image_path)
+                answer_image = image_path
+                break
+        
+        output += f"\n\n![Image]({answer_image})"  # 이미지 삽입
+
         logger.log_custom("Output from question_answer_chain:\n%s", output)
         logger.log_custom("--------------------------------------------------------------------")
-        return output
-    """
-
+        return output 
+    '''
     #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
     
       
     conversaional_rag_chain = RunnableWithMessageHistory(
@@ -181,6 +193,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd1234"}})
+    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abc1d111234"}})
 
     return ai_response 
