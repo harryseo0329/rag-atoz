@@ -46,7 +46,7 @@ elif menu == "Admin":
 
     password_placeholder = st.empty() 
     result_placeholder = st.empty() 
- 
+  
     # 비밀번호 입력 받기
     password = password_placeholder.text_input("비밀번호를 입력하세요", type="password")
  

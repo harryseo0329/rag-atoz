@@ -13,7 +13,7 @@ def show_page():
 		st.session_state.uploaded_file = None
 		st.session_state.file_uploader_key = "file_uploader_key_1"  # 초기 key 설정
 
-	
+	 
 	# 파일 업로드 기능
 	st.session_state.uploaded_file = st.file_uploader("문서를 업로드하세요", type=["txt", "pdf", "docx", "doc", "xlsx", "png", "jpg", "jpeg", "pptx"], key=st.session_state.file_uploader_key)
 	

@@ -186,7 +186,7 @@ def process_and_store_document(uploaded_file, file_type):
                 for shape in slide.shapes:
                     if shape.has_text_frame:
                         slide_text.append(shape.text)
-                
+                 
                 # OCR 수행
                 ocr_text_content = ""
                 if i < len(image_files):
