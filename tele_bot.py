@@ -119,12 +119,15 @@ def handler(msg):
                     bot.sendMessage(chat_id, output)       
         else:
             print(str_message)
-            bot.sendMessage(chat_id, "대화 생성중입니다....")
-            ai_response = get_ai_response(str_message) 
-            result_str2 = st.write_stream(ai_response)
-            # 데이터 이스케이프 처리
-            escaped_data = escape_markdown(result_str2)
-            bot.sendMessage(chat_id, str(escaped_data), parse_mode='MarkdownV2')
+            if str_message.strip().find("날씨") > 0 :
+                tele_mode.get_weather(w)
+            else:    
+                bot.sendMessage(chat_id, "대화 생성중입니다....")
+                ai_response = get_ai_response(str_message) 
+                result_str2 = st.write_stream(ai_response)
+                # 데이터 이스케이프 처리
+                escaped_data = escape_markdown(result_str2)
+                bot.sendMessage(chat_id, str(escaped_data), parse_mode='MarkdownV2')
 
 # 텔레그램 봇 실행
 bot = telepot.Bot(os.getenv("TELEGRAM_TOKEN"))
