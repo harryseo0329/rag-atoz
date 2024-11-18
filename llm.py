@@ -119,7 +119,7 @@ def get_rag_chain():
     )
 
     system_prompt = (
-        "You are an assistant for question-answering tasks. "
+        "You are an assistant for question-answering tasks for Uracle Corp. "
         "Use the following pieces of retrieved context to answer "
         "the question. If you don't know the answer, say that you "
         "don't know. Use three sentences maximum and keep the "
