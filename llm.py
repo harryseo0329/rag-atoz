@@ -41,34 +41,17 @@ def get_retriever():
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    #index_name = "atoz-index2"
-    index_name = "atoz-index"
+    index_name = os.getenv('INDEX_NAME')
 
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
     #의미중심 리트리버
     dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
-    '''
-    pinecone_params = init_pinecone_index(
-        index_name=index_name,  # Pinecone 인덱스 이름
-        namespace="harryseo-namespace-01",  # Pinecone Namespace
-        api_key=os.environ["PINECONE_API_KEY"],  # Pinecone API Key
-        sparse_encoder_path=get_sparse_encoder_path(),  # Sparse Encoder 저장경로(save_path)
-        stopwords=stopwords(),  # 불용어 사전
-        tokenizer="kiwi",
-        embeddings=embedding,  # Dense Embedder
-        top_k=5,  # Top-K 문서 반환 개수
-        alpha=0.5,  # alpha=0.75로 설정한 경우, (0.75: Dense Embedding, 0.25: Sparse Embedding)
-    )
-    '''
-
-    #하이브리드 리트리버
-    #pinecone_retriever = PineconeKiwiHybridRetriever(**pinecone_params)
-
+    
     end_time = time.time()
     elapsed_time = end_time - start_time
     logger.log_custom("소요시간 : %s", elapsed_time)
-    return dense_retriever #pinecone_retriever
+    return dense_retriever 
 
 def get_history_retriever():
     llm = get_llm()
@@ -141,6 +124,7 @@ def get_rag_chain():
         "the question. If you don't know the answer, say that you "
         "don't know. Use three sentences maximum and keep the "
         "answer concise."
+        "And if there is `image_path` in the metadata of retrieved context to answer, convert the URL value to a markdown image and add it to the end of the answer."
         "And if there is markdown table in your answer, please show it as a table."
         "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
         "\n\n"
@@ -158,18 +142,30 @@ def get_rag_chain():
     history_aware_retriever = get_history_retriever()
 
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    """
+    
     # Add invoke logging
+    '''
     def question_answer_chain_with_logging(input_data):
         logger.log_custom("Invoking question_answer_chain with input:\n%s", input_data)
-        output = question_answer_chain.invoke(input_data)
+        output = question_answer_chain.invoke(input_data, streaming=True)
+
+        answer_image = ""
+        for doc in input_data["context"]:
+            image_path = doc.metadata.get("image_path")
+            if image_path:
+                logger.log_custom("image_path:%s",image_path)
+                answer_image = image_path
+                break
+        
+        output += f"\n\n![Image]({answer_image})"  # 이미지 삽입
+
         logger.log_custom("Output from question_answer_chain:\n%s", output)
         logger.log_custom("--------------------------------------------------------------------")
-        return output
-    """
-
+        return output 
+    '''
     #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+    
     
       
     conversaional_rag_chain = RunnableWithMessageHistory(
@@ -197,6 +193,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd1234"}})
+    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abc1d111234"}})
 
     return ai_response 
