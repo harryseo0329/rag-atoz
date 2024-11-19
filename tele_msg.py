@@ -6,6 +6,7 @@ import tele_mode  # 필요한 모듈 임포트
 import streamlit as st
 import re
 import sys
+import os
 # MarkdownV2에서 이스케이프 처리가 필요한 문자
 escape_chars = r'\_*[]()~`>#+-=|{}.!'
 
@@ -32,35 +33,34 @@ def message_handler(msg):
                 filepath = " ".join(args)
                 if filepath.strip() == "":
                     filelist = tele_mode.get_dir_list("./files")
-                    bot.sendMessage(chat_id, filelist)
+                    tele_bot.sendMessage(chat_id, filelist)
                 else:
                     filelist = tele_mode.get_dir_list(filepath)
-                    bot.sendMessage(chat_id, filelist)
+                    tele_bot.sendMessage(chat_id, filelist)
             elif command == "/weather" or command == "/날씨":
                 if args: 
                     w = " ".join(args)
                 else:
                     w = "삼성역"    
-                    bot.sendMessage(chat_id, "기본 날씨는 삼성역 입니다.")
+                    tele_bot.sendMessage(chat_id, "기본 날씨는 삼성역 입니다.")
                 weather = tele_mode.get_weather(w)
-                bot.sendMessage(chat_id, weather)
+                tele_bot.sendMessage(chat_id, weather)
             elif command[0:4] == "/get" or command == "/파일":
                 filepath = " ".join(args)
-                logger.log_custom("filepath:\n%s", filepath)
                 if os.path.exists("./files/" + filepath):
                     try:
                         if command == "/getfile":
-                            bot.sendDocument(chat_id, open("./files/" + filepath, "rb"))
+                            tele_bot.sendDocument(chat_id, open("./files/" + filepath, "rb"))
                         elif command == "/getimage":
-                            bot.sendPhoto(chat_id, open("./files/" + filepath, "rb"))
+                            tele_bot.sendPhoto(chat_id, open("./files/" + filepath, "rb"))
                         elif command == "/getaudio":
-                            bot.sendAudio(chat_id, open("./files/" + filepath, "rb"))
+                            tele_bot.sendAudio(chat_id, open("./files/" + filepath, "rb"))
                         elif command == "/getvideo":
-                            bot.sendVideo(chat_id, open("./files/" + filepath, "rb"))
+                            tele_bot.sendVideo(chat_id, open("./files/" + filepath, "rb"))
                     except Exception as e:
-                        bot.sendMessage(chat_id, "파일 전송 실패 {}".format(e))
+                        tele_bot.sendMessage(chat_id, "파일 전송 실패 {}".format(e))
                 else:
-                    bot.sendMessage(chat_id, "파일이 존재하지 않습니다.")
+                    tele_bot.sendMessage(chat_id, "파일이 존재하지 않습니다.")
             elif command == "/dic":
                 print(args)
                 if isinstance(args[0], str):
@@ -74,13 +74,14 @@ def message_handler(msg):
                 print(args.split(","))
                 # ws 리스트의 길이와 요소들을 확인하여 메시지를 전송
                 if len(ws) < 2 or ws[0] == "" or ws[1] == "":
-                    bot.sendMessage(chat_id, "/dic keyword, keyword2")
+                    tele_bot.sendMessage(chat_id, "/dic keyword, keyword2")
                 else:
                     output = set_dic.add_entry_to_file(ws[0], ws[1])
-                    bot.sendMessage(chat_id, output)       
+                    tele_bot.sendMessage(chat_id, output)       
         else:
             print(str_message)
             if str_message.strip().find("날씨") > 0 :
+                w = "삼성역" 
                 tele_mode.get_weather(w)
             else:    
                 tele_bot.sendMessage(chat_id, "대화 생성중입니다....")
