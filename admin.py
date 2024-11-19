@@ -3,6 +3,9 @@ import webbrowser
 from database import process_and_store_document
 from logger import logger
 import time
+import tele_bot
+
+chat_id = "123456789"  # 채팅 ID
 
 def show_page():
 	logger.log_custom("어드민 페이지")
@@ -29,6 +32,11 @@ def show_page():
 
 		# 완료 메시지 표시
 		st.success("문서가 성공적으로 저장 및 학습되었습니다!")
+		# 특정 사용자에게 메시지 보내기
+
+		message = "안녕하세요! 어드민에서 새로운 문서가 성공적으로 저장 및 학습되었습니다!"
+		tele_bot.send_message(chat_id, message)
+
 		st.session_state.uploaded_file = None
 		st.session_state.file_uploader_key = f"file_uploader_key_{int(st.session_state.file_uploader_key.split('_')[-1])+1}"  # key 변경
 		
