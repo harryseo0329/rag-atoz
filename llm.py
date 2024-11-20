@@ -9,18 +9,22 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_community.chat_message_histories import ChatMessageHistory
 
+#from langchain.chat_models import ChatOllama
+#from langchain_ollama import ChatOllama
+#from langchain_chroma import Chroma
+
 from config import answer_examples
 from logger import logger
 from dic import dictionary
 
-from utils import (
-    stopwords,
-    get_sparse_encoder_path
-)
-from harry_pinecone import (
-    init_pinecone_index,
-    PineconeKiwiHybridRetriever
-)
+#from utils import (
+#    stopwords,
+#    get_sparse_encoder_path
+#)
+#from harry_pinecone import (
+#    init_pinecone_index,
+#    PineconeKiwiHybridRetriever
+#)
 import os
 
 import time
@@ -41,10 +45,11 @@ def get_retriever():
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
 
     #파인콘 인덱스명
-    index_name = os.getenv('INDEX_NAME')
+    index_name = os.getenv('INDEX_NAME') 
 
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
-    
+    #database = Chroma(collection_name='chroma-rules-3',persist_directory="./chroma3", embedding_function=embedding)
+
     #의미중심 리트리버
     dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
     
@@ -83,22 +88,32 @@ def get_history_retriever():
 
 #llm
 def get_llm():
+    #Upstage LLM
     llm=ChatUpstage()
+
+    #Ollama kullm3
+    #llm = ChatOllama(model="bnksys/kullm3-11b")
     return llm
+
 
 #dictionary 
 def get_dictionary_chain():
     
     myDictionary = dictionary
-
-    llm = get_llm()
-    prompt = ChatPromptTemplate.from_template(f"""
+    """
         사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
         만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
-        그런 경우에는 질문만 리턴해주세요.
-        사전: {myDictionary}                        
+        그런 경우에는 질문만 리턴해주세요
+    """
+    llm = get_llm()
+    prompt = ChatPromptTemplate.from_template(f"""
+        First, review the user's question and refer to our dictionary to modify the user's question if necessary.
+        If no modification is needed, return the original question as it is.
+        In such cases, simply return the question without any changes.
+        
+        dictionary: {myDictionary}                        
                                             
-        질문: {{question}}
+        question: {{question}}
     """)
 
     dictionary_chain = prompt | llm | StrOutputParser()
@@ -193,6 +208,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abc1d111234"}})
+    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd123"}})
 
     return ai_response 
