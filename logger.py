@@ -21,5 +21,5 @@ def log_custom(self, message, *args, **kws):
 # Logger 클래스에 메서드 추가
 logging.Logger.log_custom = log_custom
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

@@ -208,6 +208,6 @@ def get_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd123"}})
+    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd12123"}})
 
     return ai_response 
