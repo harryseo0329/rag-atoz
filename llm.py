@@ -17,12 +17,8 @@ from utils import (
     stopwords,
     get_sparse_encoder_path
 )
-from harry_pinecone import (
-    init_pinecone_index,
-    PineconeKiwiHybridRetriever
-)
-import os
 
+import os
 import time
 
 global_question = ""
@@ -33,40 +29,35 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
-
-#retriever
+# Retriever
 def get_retriever():
     start_time = time.time()
-    #임베딩
+
+    # 임베딩 생성
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
-
-    #파인콘 인덱스명
+    
+    # 파인콘 인덱스
     index_name = os.getenv('INDEX_NAME')
-
     database = PineconeVectorStore.from_existing_index(index_name=index_name, embedding=embedding)
     
-    #의미중심 리트리버
-    dense_retriever = database.as_retriever(search_kwargs={'k': 4}) 
+    # 의미 중심 리트리버
+    dense_retriever = database.as_retriever(search_kwargs={'k': 10})  # 결과 개수 증가
     
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    logger.log_custom("소요시간 : %s", elapsed_time)
-    return dense_retriever 
+    elapsed_time = time.time() - start_time
+    logger.log_custom("Retriever 생성 소요시간 : %s", elapsed_time)
+    return dense_retriever
 
 def get_history_retriever():
     llm = get_llm()
     retriever = get_retriever()
-
     
     contextualize_q_system_prompt = (
-        "Given a chat history and the latest user question "
-        "which might reference context in the chat history, "
-        "formulate a standalone question which can be understood "
-        "without the chat history. Do NOT answer the question, "
-        "just reformulate it if needed and otherwise return it as is."
-        "If the question is about employee information, ignore the chat history entirely and provide an answer based solely on the question."
+        "Given a chat history and the latest user question, "
+        "reformulate the question to make it standalone. "
+        "Preserve the original intent but include missing details if referenced in the chat history."
+        "For employee-related queries, disregard chat history and answer solely based on the question."
     )
-    contextualize_q_system_prompt=""
+    
     contextualize_q_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", contextualize_q_system_prompt),
@@ -78,33 +69,28 @@ def get_history_retriever():
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, contextualize_q_prompt
     )
-
     return history_aware_retriever
 
-#llm
+# LLM
 def get_llm():
-    llm=ChatUpstage()
-    return llm
+    return ChatUpstage()
 
-#dictionary 
+# Dictionary Chain
 def get_dictionary_chain():
-    
     myDictionary = dictionary
-
+    
     llm = get_llm()
     prompt = ChatPromptTemplate.from_template(f"""
-        사용자의 질문을 먼저 보고, 우리의 사전을 참고해서 사용자의 질문을 변경해주세요.
-        만약 변경할 필요가 없다고 판단된다면, 사용자의 질문을 변경하지 않아도 됩니다.  
-        그런 경우에는 질문만 리턴해주세요.
-        사전: {myDictionary}                        
-                                            
+        사용자의 질문을 보고, 사전의 내용을 참고해 질문을 변경하세요.
+        변경이 필요 없으면 원래 질문을 그대로 반환하세요.
+        사전: {myDictionary}
         질문: {{question}}
     """)
 
     dictionary_chain = prompt | llm | StrOutputParser()
-    
     return dictionary_chain
 
+# RAG Chain
 def get_rag_chain():
     llm = get_llm()
     
@@ -114,22 +100,18 @@ def get_rag_chain():
 
     few_shot_prompt = FewShotChatMessagePromptTemplate(
         examples=answer_examples,
-        # This is a prompt template used to format each individual example.
         example_prompt=example_prompt,
     )
 
     system_prompt = (
         "You are an assistant for question-answering tasks. "
-        "Use the following pieces of retrieved context to answer "
-        "the question. If you don't know the answer, say that you "
-        "don't know. Use three sentences maximum and keep the "
-        "answer concise."
-        "And if there is `image_path` in the metadata of retrieved context to answer, convert the URL value to a markdown image and add it to the end of the answer."
-        "And if there is markdown table in your answer, please show it as a table."
-        "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
-        "\n\n"
-        "{context}"
+        "Use the provided retrieved context to answer the question concisely. "
+        "If no context is sufficient, state that you don't know. "
+        "Limit your answer to three sentences. "
+        "For responses with `image_path` in metadata, include the image as a markdown image."
+        "\n\n{context}"
     )
+    
     qa_prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),
@@ -140,59 +122,43 @@ def get_rag_chain():
     )
 
     history_aware_retriever = get_history_retriever()
-
     question_answer_chain = create_stuff_documents_chain(llm, qa_prompt)
-    
-    # Add invoke logging
-    '''
-    def question_answer_chain_with_logging(input_data):
-        logger.log_custom("Invoking question_answer_chain with input:\n%s", input_data)
-        output = question_answer_chain.invoke(input_data, streaming=True)
-
-        answer_image = ""
-        for doc in input_data["context"]:
-            image_path = doc.metadata.get("image_path")
-            if image_path:
-                logger.log_custom("image_path:%s",image_path)
-                answer_image = image_path
-                break
-        
-        output += f"\n\n![Image]({answer_image})"  # 이미지 삽입
-
-        logger.log_custom("Output from question_answer_chain:\n%s", output)
-        logger.log_custom("--------------------------------------------------------------------")
-        return output 
-    '''
-    #rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain_with_logging)
     rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-    
-    
-      
-    conversaional_rag_chain = RunnableWithMessageHistory(
+
+    conversational_rag_chain = RunnableWithMessageHistory(
         rag_chain,
         get_session_history,
         input_messages_key="input",
         history_messages_key="chat_history",
         output_messages_key="answer",
     ).pick('answer')
+    
+    return conversational_rag_chain
 
-    return conversaional_rag_chain
-
+# 수정된 get_ai_response
 def get_ai_response(user_message):
     global global_question 
     global_question = user_message
+    
     dictionary_chain = get_dictionary_chain()
 
-    # Add invoke logging
+    # 사전 체인 로깅 추가
     def dictionary_chain_with_logging(input_data):
-        logger.log_custom("Invoking dictionary_chain with input:\n%s", input_data)
+        logger.log_custom("Dictionary Chain Input:\n%s", input_data)
         output = dictionary_chain.invoke(input_data)
-        logger.log_custom("Output from dictionary_chain:%s", output)
-        logger.log_custom("--------------------------------------------------------------------")
+        logger.log_custom("Dictionary Chain Output:\n%s", output)
         return output
 
     rag_chain = get_rag_chain()
-    atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abc1d111234"}})
+    atoz_chain = {"input": dictionary_chain_with_logging} | rag_chain
 
-    return ai_response 
+    ai_response = atoz_chain.stream(
+        {"question": global_question},
+        config={"configurable": {"session_id": "abc1d111234"}}
+    )
+    print(ai_response)
+    # 문맥이 부족하거나 학습되지 않은 내용에 대한 처리
+    if ai_response is None or "학습되지 않은 내용" in ai_response:
+        return "죄송합니다. 이 질문에 대해 학습된 정보가 없습니다."
+
+    return ai_response

@@ -18,8 +18,12 @@ def log_custom(self, message, *args, **kws):
     if self.isEnabledFor(CUSTOM_LEVEL):
         self._log(CUSTOM_LEVEL, message, args, **kws)
 
+def log_error(self, message, *args):
+        print(f"[ERROR LOG] {message % args if args else message}")
+
 # Logger 클래스에 메서드 추가
 logging.Logger.log_custom = log_custom
+logging.Logger.log_error = log_error
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

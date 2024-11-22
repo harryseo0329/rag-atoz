@@ -15,7 +15,6 @@ import pandas as pd
 from docx import Document as DocxDocument
 import fitz  # PyMuPDF
 import platform
-from logger import logger
 
 # 환경 변수 로드
 load_dotenv()
@@ -23,18 +22,18 @@ load_dotenv()
 # Pinecone 클라이언트 생성
 pc = pinecone.Pinecone(api_key=os.getenv('PINECONE_API_KEY'), environment=os.getenv('PINECONE_ENV'))
 
+# Tesseract OCR 경로 설정
+tesseract_base_path = os.path.join("libs", "tesseract")
+pytesseract.pytesseract.tesseract_cmd = os.path.join(tesseract_base_path, "tesseract.exe")
+os.environ["TESSDATA_PREFIX"] = os.path.join(tesseract_base_path, "tessdata")
+
+poppler_path = 'libs/poppler/Library/bin'  # poppler 경로 설정
+
 # OS에 따른 LibreOffice 경로 설정
 if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-    os.environ["TESSDATA_PREFIX"] = "C:\\Program Files\\Tesseract-OCR\\tessdata"
-    poppler_path = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\libs\\poppler\\Library\\bin"
     LIBREOFFICE_PATH = "C:\\Program Files\\LibreOffice\\program\\soffice.exe"
 else:
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-    os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata"
-    poppler_path = "/usr/bin"
-    LIBREOFFICE_PATH = "/usr/lib/libreoffice/program/soffice"  # linux 경로
-    
+    LIBREOFFICE_PATH = "/Applications/LibreOffice.app/Contents/MacOS/soffice"  # Mac용 경로
 
 # 파일 형식별 처리 함수 정의
 
@@ -120,12 +119,8 @@ def preprocess_image_for_ocr(image_path):
     image = image.filter(ImageFilter.SHARPEN)  # 샤프닝 필터 적용
     return image
 
-def convert_pptx_to_pdf_images(pptx_path, save_dir="C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\images\\poppler"):
+def convert_pptx_to_pdf_images(pptx_path, save_dir="images/poppler"):
     """PPTX 파일을 PDF로 변환 후, PDF의 각 페이지를 이미지로 변환하여 상대 경로로 이미지 파일 경로를 반환합니다."""
-    if platform.system() == "Windows":
-        save_dir = "C:\\Users\\uracle\\Desktop\\python-workspace\\ai\\rag-atoz\\images\\poppler"
-    else:
-        save_dir = "/ai/rag-atoz/images/poppler"
     os.makedirs(save_dir, exist_ok=True)
     
     # PDF 파일 경로 설정 (temp 폴더에 임시로 저장)
@@ -138,7 +133,7 @@ def convert_pptx_to_pdf_images(pptx_path, save_dir="C:\\Users\\uracle\\Desktop\\
     )
     
     if result.returncode != 0:
-        logger.log_custom("LibreOffice 변환 실패:%s", result.stderr)
+        print("LibreOffice 변환 실패:", result.stderr)
         raise Exception("PPTX to PDF 변환 실패")
 
     if not os.path.exists(pdf_path):
@@ -161,7 +156,6 @@ def convert_pptx_to_pdf_images(pptx_path, save_dir="C:\\Users\\uracle\\Desktop\\
 
 def process_and_store_document(uploaded_file, file_type):
     """파일을 읽어 Pinecone에 저장합니다. 파일 형식에 따라 적절한 처리 함수를 호출합니다."""
-    logger.log_custom("process_and_store_document 함수 호출")
     try:
         
         # 원본 파일명을 저장
@@ -177,38 +171,28 @@ def process_and_store_document(uploaded_file, file_type):
         if file_type == "pptx":
             # PPTX 파일의 슬라이드를 PDF로 변환 후 각 페이지를 이미지로 변환
             image_files = convert_pptx_to_pdf_images(temp_file_path)  # PDF -> 이미지 변환
-            logger.log_custom("temp_file_path:%s",temp_file_path)
             ppt = Presentation(temp_file_path)
-            logger.log_custom("Presentation")
+
             for i, slide in enumerate(ppt.slides):
                 slide_text = []
                 for shape in slide.shapes:
                     if shape.has_text_frame:
                         slide_text.append(shape.text)
-                 
+                
                 # OCR 수행
                 ocr_text_content = ""
                 if i < len(image_files):
                     preprocessed_image = preprocess_image_for_ocr(image_files[i])
-                    logger.log_custom("preprocess_image_for_ocr:%s번째",i)
                     ocr_text_content = pytesseract.image_to_string(preprocessed_image, lang="kor").strip()
-                    logger.log_custom("ocr_text_content")
 
                 # 슬라이드 텍스트와 OCR 텍스트 결합하여 Document 객체 생성
                 combined_content = f"{' '.join(slide_text)}\n{ocr_text_content}"
-                logger.log_custom(f"PPTX 파일 슬라이드 {i+1} 내용:\n{combined_content}\n{'-'*50}") 
-
-                
-
-                # 파일명과 확장자 추출
-                image_file_name, image_file_extension = os.path.splitext(os.path.basename(image_files[i]))
-                image_url = os.getenv('IMAGE_URL')+"/poppler/"+image_file_name+image_file_extension
+                print(f"PPTX 파일 슬라이드 {i+1} 내용:\n{combined_content}\n{'-'*50}")
                 documents.append(Document(
-                    page_content=combined_content+f"\n\n![Image]({image_url}) \"참고 이미지\"" ,
+                    page_content=combined_content,
                     metadata={
                         "slide_index": i + 1,
-                        #"image_path": image_files[i],
-                        "image_path": image_url,
+                        "image_path": image_files[i],
                         "source": file_name
                     }
                 ))
@@ -260,13 +244,6 @@ def process_and_store_document(uploaded_file, file_type):
             # 이미지 OCR 결과를 Document 객체로 생성
             documents = [Document(page_content=document_text, metadata={"source": file_name})]
 
-        elif file_type == "txt":
-            document_text =  process_text_file(temp_file_path)
-            print(f"텍스트 파일 내용:\n{document_text}\n{'-'*50}")
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-            split_texts = text_splitter.split_text(document_text)
-            documents = [Document(page_content=text, metadata={"source": file_name}) for text in split_texts]
-
         # Pinecone에 저장
         embeddings = UpstageEmbeddings(model="solar-embedding-1-large")
         index_name = os.getenv('INDEX_NAME')
@@ -275,14 +252,11 @@ def process_and_store_document(uploaded_file, file_type):
         if index_name not in pc.list_indexes().names():
             pc.create_index(index_name, dimension=embeddings.dimension)
         
-        if len(documents) > 0:
-            logger.log_custom("DB INSERT LENGTH:%s",len(documents))
-            logger.log_custom("DB LOAD") 
-            database = PineconeVectorStore.from_documents(documents, embeddings, index_name=index_name)
+        database = PineconeVectorStore.from_documents(documents, embeddings, index_name=index_name)
         
-        logger.log_custom("임베딩이 성공적으로 저장되었습니다!")
+        print("임베딩이 성공적으로 저장되었습니다!")
         return True
 
     except Exception as e:
-        logger.log_custom("임베딩 저장 실패:%s",str(e))
+        print(f"임베딩 저장 실패: {e}")
         return False
