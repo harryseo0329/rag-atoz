@@ -1,6 +1,6 @@
 import streamlit as st
 from dotenv import load_dotenv
-from llm import get_ai_response
+from llm import get_ai_response, get_direct_ai_response, save_question, ai_recommand_questions
 import base64
 import importlib
 
@@ -17,6 +17,10 @@ import ssl
 
 import time
 from datetime import datetime
+import asyncio
+import threading
+
+load_dotenv()
 
 # 이메일 보내는 함수
 def send_email(sender_email, receiver_email, subject, body, smtp_server, smtp_port, sender_password):
@@ -60,39 +64,93 @@ def getNextNextMonth():
         next_next_month = (current_year, current_month + 2)
     return f"{next_next_month[0]}년 {next_next_month[1]}월"
 
-load_dotenv()
-
 st.set_page_config(page_title="A to Z Uracle", page_icon="./files/uracle_favicon.png", initial_sidebar_state="collapsed")
-
-
 
 # 메뉴 선택
 menu = st.sidebar.selectbox("메뉴를 선택해 주세요.", ["Home", "Admin"])
 
 # 각 섹션을 조건에 따라 보여주기
 if menu == "Home":
-    
     st.title("🤖 A to Z Uracle")
     st.caption("Uracle에 대한 모든것!")
+
+    if 'recommad_displayed' not in st.session_state:
+        st.session_state.recommad_displayed = False
+
+    if 'selected_question' not in st.session_state:
+        st.session_state.selected_question = ""
+
+    #질문 추천을 위한 사전정보
+    if 'prior_info_fm' not in st.session_state:
+        st.session_state.prior_info_fm = ""
     
+    if 'prior_info_dept' not in st.session_state:
+        st.session_state.prior_info_dept = ""
+    
+    if 'prior_info_pos' not in st.session_state:
+        st.session_state.prior_info_pos = ""
+
+    #메시지 히스토리
     if 'message_list' not in st.session_state:
         st.session_state.message_list = []
 
+    #추천 사용자 질문
+    if 'recommand_question_list' not in st.session_state:
+        st.session_state.recommand_question_list = []    
+
+    #질문 메일버튼,폼 hide/show
     if 'ebutton_displayed' not in st.session_state:
         st.session_state.ebutton_displayed = False
 
     if 'eform_displayed' not in st.session_state:
         st.session_state.eform_displayed = False
 
+    #휴양소 신청 메일버튼,폼 hide/show
     if 'rbutton_displayed' not in st.session_state:
         st.session_state.rbutton_displayed = False
 
     if 'rform_displayed' not in st.session_state:
-        st.session_state.rform_displayed = False
+        st.session_state.rform_displayed = False    
+
+    if st.session_state.recommad_displayed == True:
+        selected_question = st.selectbox("📚 AI기반으로 성별, 부서, 직책 맞는 질문을 추천해드립니다.", st.session_state.recommand_question_list, index=0)
+        if selected_question != "질문을 선택해 주세요" and selected_question != st.session_state.selected_question:
+            st.session_state.selected_question = selected_question
+            st.session_state.message_list.append({"role":"user", "content":selected_question})
+            st.session_state.message_list.append({"role": "ai", "content": get_direct_ai_response(selected_question)})
+            st.session_state.eform_displayed = False
+            st.session_state.rform_displayed = False    
+
+    if st.session_state.prior_info_fm == "" or st.session_state.prior_info_dept == "" or st.session_state.prior_info_pos == "":
+        with st.form("prior_info_form"):
+            prior_info_fm = st.radio("성별", ["남성", "여성"])
+            prior_info_dept = st.text_input("부서", value="", placeholder="컨버전스개발실")
+            prior_info_pos = st.text_input("직급", value="", placeholder="과장(선임)")
+
+            # 제출 버튼
+            submit_button = st.form_submit_button("저장")
+
+            if submit_button:
+                # 입력값이 모두 채워졌는지 확인
+                all_fields_filled = all([prior_info_fm, prior_info_dept, prior_info_pos]) 
+
+                if not all_fields_filled:
+                    st.error("양식을 모두 채워서 작성해주세요.")
+                else:
+                    st.session_state.prior_info_fm = prior_info_fm
+                    st.session_state.prior_info_dept = prior_info_dept
+                    st.session_state.prior_info_pos = prior_info_pos
+                    st.success("저장되었습니다.")
+                    st.session_state.recommand_question_list = ai_recommand_questions(st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos)
+                    st.session_state.recommad_displayed = True
+                    time.sleep(3)  # 3초 대기
+                    st.rerun()
+
 
     for message in st.session_state.message_list:
         with st.chat_message(message["role"]):
             st.write(message["content"])
+
     logger.log_custom("st.session_state.eform_displayed:%s",str(st.session_state.eform_displayed))
     if user_question := st.chat_input(placeholder="유라클에 대한 궁금한 내용들을 말씀해주세요!"):
         with st.chat_message("user"):
@@ -102,6 +160,11 @@ if menu == "Home":
         st.session_state.rform_displayed = False
 
         with st.spinner("..."):
+            all_meta_fields_filled = all([st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos]) 
+
+            if all_meta_fields_filled:
+                save_question([user_question, st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos])
+            
             ai_response = get_ai_response(user_question) 
             with st.chat_message("ai"):
                 ai_message = st.write_stream(ai_response)
