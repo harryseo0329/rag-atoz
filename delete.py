@@ -9,7 +9,7 @@ load_dotenv()
 # Pinecone API 초기화
 api_key = os.getenv('PINECONE_API_KEY')
 pc = Pinecone(api_key=api_key)
-index_name = "test2"
+index_name = os.getenv('INDEX_NAME')
 index = pc.Index(index_name)
 
 # 특정 source에 맞는 벡터 삭제 함수
