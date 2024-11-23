@@ -322,4 +322,4 @@ def ai_recommand_questions(fm, dept, pos):
     # 질문 텍스트만 추출하여 반환
     similar_questions = ["질문을 선택해 주세요"] + [match['metadata']['question'] for match in sorted_questions[:5]]
     
-    return similar_questions
+    return similar_questions 
