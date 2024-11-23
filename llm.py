@@ -244,7 +244,10 @@ def save_question(qustion_arr):
     pinecone_api_key = os.environ.get("PINECONE_API_KEY")
     pc = Pinecone(api_key=pinecone_api_key)
 
-    index = pc.Index(host="https://atoz-question-index-2mdbxgq.svc.aped-4627-b74a.pinecone.io")
+    index_description = pc.describe_index(os.environ.get("QUESTION_INDEX_NAME"))
+    index_host = index_description.host
+
+    index = pc.Index(host=index_host)
     
     # 기존 질문을 찾기 (빈도수 업데이트)
     existing_question = index.query(
@@ -289,7 +292,10 @@ def ai_recommand_questions(fm, dept, pos):
     embedding = UpstageEmbeddings(model='solar-embedding-1-large')
     pinecone_api_key = os.environ.get("PINECONE_API_KEY")
     pc = Pinecone(api_key=pinecone_api_key)
-    index = pc.Index(host="https://atoz-question-index-2mdbxgq.svc.aped-4627-b74a.pinecone.io")
+    index_description = pc.describe_index(os.environ.get("QUESTION_INDEX_NAME"))
+    index_host = index_description.host
+
+    index = pc.Index(host=index_host)
 
     # 메타데이터 필터를 사용하여 유사한 질문 검색
     filter_metadata = {
