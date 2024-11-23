@@ -19,6 +19,7 @@ import time
 from datetime import datetime
 import asyncio
 import threading
+from streamlit.components.v1 import html
 
 load_dotenv()
 
@@ -64,14 +65,22 @@ def getNextNextMonth():
         next_next_month = (current_year, current_month + 2)
     return f"{next_next_month[0]}년 {next_next_month[1]}월"
 
-st.set_page_config(page_title="A to Z Uracle", page_icon="./files/uracle_favicon.png", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="A to Z Uracle", page_icon="./images/common/uracle_favicon.png", initial_sidebar_state="collapsed")
 
 # 메뉴 선택
 menu = st.sidebar.selectbox("메뉴를 선택해 주세요.", ["Home", "Admin"])
 
 # 각 섹션을 조건에 따라 보여주기
 if menu == "Home":
-    st.title("🤖 A to Z Uracle")
+    st.markdown(
+        """
+        <div style="display: flex; align-items: center;">
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAPbUlEQVR42uzaS4iVZRzH8X+mMtnQ3cVkVMakURYRdNNIcSEVJERNlHaBIrrYZiCICHc1QURIizYFLYZum6IWIbqRKGIg7LJQqExDY3LyKF5GPXrG8ffAWRxcKfx83kef7x++6+c57zyfc877ngmGYRiGYRiGYZhTp3XNYL+aR4MDanYUOmlvaqCQa9V0/c4LO6TG1M+Vt14tikIn7U2tL+RaNdmYGnJe2DXquJquvHF1TxQ6aW9qvJBr1WTH1RoAAKDWAACAqgMAAKoOAACoOgAAoOoAAICqAwAAqg4AAKg6AACg6gAAgKoDAACqDgAAqDoAAKDqAACAqgMAAKquaACdBpoCwBk3pTq5O98BtNSIGs7cqGoD4LRrq1E1nLkR1TqfAexQCyLzaM1V6hAATrtDalVknnQ21A4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9AwAAAAAAAAAAAABQ5gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAETvAAAAAAAAAAAAAACUOQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAANE7AAAAAAAAAAAAAABlDgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQPQOAAAAAAAAAAAAAECZAwAAAAAAAAAAAAAAAAAUCGA7AABQM4Atan70DgAAUBGA39S10TsAAEBFAP5Sg9E7AABARQCaugl+Qh007H+3uj8KHQCcPQCvmADsVLdF5tGaD6t9hv231INR6GhvS9VuAPgBPKMOm75CLI7MozVXqD2G/e9Xj0Whk3CqluF1HlSPR+bRmrerXSUCGFIHztV3UK15r+mrwRH1nIoSR/taafykeygyj9Zcov4z7P+oet65sQdUy/TR+pSKnKP1blX/mN5ZXlMXRIGjfa023exPqOWReRI64zl70rmxxaZ30GNqOPcB0no3qC2G/XfUu2pWFDbaU+pl1Ta8zn/VnZF50qE1PazYp1Y6N3az2m46QO/lPkBab0D9YNj/CfWZmhOFjfY0Q72pOobXuU0tjIzTBfyqOlbcJ1j68UptNh2gL3MfIK13mfpGTRvapK6IwkZ7mq3WqSnDa9yc+wdLrTdTvWUCvFPd4dzcXLXBdIB+VHMj42i9PvWROmH6d44bo7BJbyrqC9Nr3NjA3+gi9YkJ8B9q0H1xR00A/laLIuN0313Wmn7L2KPui8JGe7pSfa+mDX2u+iPjdD+lN5r2/5Oa59zcLPWO6eNpf+5HbOmm2/hbxmH1bBQ26VPJdKM/pd5v4D5tvvrdBOBbdbn7ButFdcT0JOh1FblGa6WWqQnjAZkRBU33Sd3/htfXVsPqwsg4Wu8uNW66z/xY9bkP0ArVMm3w054N5rrAC9VWNW1og7o0Cpr0+4rpE+6AeqSBR9Wr1aTpt5q1aqZ7g7eoP00H6Bd1dWSc9OTG+B1zm7opCpl0WNXbpq+ou9TdKiLOyf1PqqfdgNMmr1KbTAeopZZmvsh96gPT/ifVo6X8S4T2cbH62vQE6NcGHoHOUV+Z9j+hlin/AVIfmg5QR72R83t0Wku9oNqmr3HrSvlFWPu4znIDrLqQLomMo/WuN+5/q1pwtg7QS6YDlPou54XWWqklphvh1JgaCMMYXtdytdcEe+Rke/ceHFV1B3A8u8lmw5KERMKjRCSE1GKlKBgizz4QZuyoQKFAGQojVFtwimOKg6YF6UjrYxS00JYpJSoj8hgs1uEpRQupNQqBNpX3Sx55Ng8ieW2yuzf9ZuZ2ZgdD0M3vnL2b3DPz+Rd+99zfOed3zz13Awa21vgnoEbovryHZFWBjkOFUKBXcE8UTWNHp+KwUPzVuF9gqZWYmJYI1c8NmA3q54iMv9VquFUmUIFQoM1YorkMcuM1oVozIHCuSeKaErBD6J4UYzj4lyMy/iY8AqfKBMqVSCDTB0iJ0tTM3YZH4RWK/99IC+cqwP89BJ8JHlPpA/7liIy/AmOhNIF+gkahgK/qLCPMVWw4LgnF34C5IZQMogNa6H4YWNd2+RAx+XQU/aH4szXzu03Bt3ZujYMgWWrJNe1AYgjxi5QPgtuHXszTXP/HY5tQ/AY2IC4qgo4Wt7qEuzUOgGgsFtzNqsKEMLw5bZWJIsH7MAw64x+GK4L1/0I4dSTQE4IJ5McKuDR2fJZg4hh4Hd2jNDZz92QpfELXsRd856A1/hzB+IuRBT0jV6oMMp3AEI2zTyLeEYy/BOPh0DiI+wlu6frwK8RojL8v8gXvwT6k6EqgeGwVDN6H5xGnKX4nHhFcxQLYiCSN8c9BA1ose3yg/YffGagTzJ9nwADWewMaBQfBOYyErhkoA6cE46/AVDg0xJ6C3YKxH0QvzRsR2wXjL8e3g+LXkkADUCh4EX68jkRNg8CF1QgIPgt8gFuhevKZhRrB1WupxvLHgR+gSjB39msrf4I/Mwz+SkxIJaYjWtMg/o7U2SBTI3IQp7j23yv4MrIMozSuvD2xXTB+P578Ys5E3m5KKwN5uB1aHoaD96GFnMd4OBXtwC1ArWC8u9EDukrnWagWjL8ohOMboue410mVEaYm/A49NC3Hk4VvSAB7kA7pCecOHBWM1YsFcGiaMNPwDxiCE+ZmeMI1AFrdhzK0CKrAfLig44HsrzCES6FVSIRUPydgFZoF4zyGDOjIkzgsg1cw/lrMQFTYmnljNgonkIETGAenpoeyq8KDuAo/hVuo9JmOUuFNh5cQq6n0mYALwn2ch6+FewA4cJ/kzTEF8D6GwKFpFQgIX8MFTEVMB/t3GA4JTzKXca+m2T8d7wn3bwMes8Svc5g12Hr4hROoGVuRBtWD+EGUC8dv4CAGdvCN6Sb4hCeX9fBoSP4eeAWNwn1bEEK/Kr3Q0TiPFmGNyEU/qN4RWi+YaAGcw+NICLFPE7EC9QqesSZomP3jsBDVwvF7sRjRUVZpBOPGr6VHusmLXNwKh8JBPAInBRK/HG9hDGJDjMWDJ1CpoLTchHjF+RCLWbisIB+OYKBVfpUj+KYNCt7mEtaIDRgEB1TdtCVoCKHU8eICcvF9JMERYj+6MR/FCvqxBBOhMg9cmIYzCnKhHtmWmv3beNFhvuYW14QdGAqnwu+e/wbjSyR9Hc7hL1iEofCgI/9/NzyMKwr6z491iFeY/DGYgrMwFD1T9Y+yajO3RdeiWdEgCKAADyJW0QPx/TiLOtPnqMQ5fIQteBoPIAMeSD2HLEa5or47gxFQWfP/GOcVxV+JmZbY+bnJLHBn8LadAgaK8DRS4FDwPHMvpmEKJiATGeiJWDghOej64mXUKOozL5YpmjRaJeMplCqc+N6w2m+y3uzFTQlaFGrAdoxGrGD8bVHZV5l4G40KJ4w8DICKsvcOrEetwnt9BllW/QOFN3o3sAz1igeBgYtYgQzEWGp3oP1ZvycW4BQCCvuoBFPgULDHPwdH4FMY/zVkIyYqUlrQS5wtMDtHKS8OIRvpVhwIZp84EI+J2IZrivulES8gXvAaumEcNqAahsL4fdiMPla7n192lrsLH8LsJOXq8Qmy8U3ECXScVF8k4rv4M4pUzvqmAHYiDRLxx2MUVuMi/BpW96MYETGlzw1qxPE4pmsQmLw4hbV4CP3h1tmRZtLEIR1zsQ0lqhPfZOAYRsPRgfjduA0z8SYuw0x85UoxI6JKn3ZejEzHJbRo5kcV8rES0zAYSYiBA5LlTTR64Hb8EK+iANc0TwBFmA0XQrmWJEzCS8hHDQIa46/FcnSPuNKnnfPgPwthZ0iSHzU4iXfxHOZiLAajNxLQDbHXDxDzOpyIQSw8SMIAZGIqnsHbOI4amLOlVhXIRvcOfC+9COXwhSH+JryGvhGf/MHNTKxFAt/hSgmgARU4jXzswga8it8gB9lBcvBb/B6b8T4KUYzaEBJeWjWWIAGhlj2Z+DSMk9Q7GBSxdf9NVoJ4ZKPcIoOgLQYCJn8bAibDIvH+XyV+iSR05G+p5YZp5g/gAIZ2uuRv46TjApRYJHE6gzI8iUR05KXcfFSFKfk/xhhLH3UQPjcyC6ctOJNGEgMX8DC6oSM7VsPxHxhhSP6PMKpLJP91u0MTcRh+iyRUJPGjAA/AhY7ci154C/4wXMMBZHWZ5G/jPcE92AmvRRIrEnixHcMRLbAa56BW8zU0Ywe+1Wlr/q+w/KbiBVTYJVG7DJRhBXpDYgKaiVLN11GHtejfqbY6O1gSdcccFNolUZt8yMdUdIPExDMSJ2FoHMDFyEGynfxt70TcjTfwuUUSL9wMVGANMuAUWnUH46DG5PfjE0xGXJTdbnrUdh4OockiiRgODdiHh+CB5PfbuzSeS6rEWny9Sz7shniTovENPI+LCFgkKXVoRiF+gVQ4IfW8dRu2oFnTsYYP8SMk2iVP6OfPxyIXpZ38IdmPM3gOQ+AS/vQyDW+iScN1nMWzyEC0nfwyPxA7Hrm4BJ9FklZCE07gRQyHG9LbzUPxruLk9+E8ViETbjvx1XxRNQYv4zgaI3RVMFCHI1iOuxAHFT9VMhYH4FM4gE/jFYyCBw47+dV/bHInFmEXSiNkVfChBDvxKDLghqrDh7NRiICCAVyDf2IphsHTpV9qhaOZy/stGIdl2IsrFlsZmlGOPCzHWCTDCVV9MhAvolz4TxJdxRGswSSkWvEb7C7Xgs4X9cJo/Bwb8S/8F16N235+1OIz7MVyTEQ/uKByZUzAJOxDo8Cx8HpcxgGsxFQMRJxd5li0BW2jxiMd38Pj+AP24zjKUIcm+GGEmCTNaEAFTmAPVmIOhiEFLqi+Xjey8McQvj32owl1KMGn2ImVmIcR6Au3XeJEaDNnq1gkIR0jMRkL8SzWYhN2Yj8+RsF1DiMPu7EJa/AUZmEcBqFHcMJrHPADkYPN2IMDOIyC6xzC37EHW/EnrMBjmIQspCERLnuG78Qt6DvfaMTAgySkoB9S29AHyfAgBk6BUkBqh8yFeNyC3ki9gV5IRne4EA0nouyEt5vd7GY3u9nNbnazm93s1lnb/wA6z/Jpm5S2cgAAAABJRU5ErkJggg==" alt="logo" style="margin-right: 20px;width:48px;height:48px;">
+            <h1>A to Z Uracle</h1>
+        </div>
+        """, 
+        unsafe_allow_html=True
+    )
     st.caption("Uracle에 대한 모든것!")
 
     if 'recommad_displayed' not in st.session_state:
@@ -112,14 +121,22 @@ if menu == "Home":
     if 'rform_displayed' not in st.session_state:
         st.session_state.rform_displayed = False    
 
+
     if st.session_state.recommad_displayed == True:
         selected_question = st.selectbox("📚 AI기반으로 성별, 부서, 직책 맞는 질문을 추천해드립니다.", st.session_state.recommand_question_list, index=0)
         if selected_question != "질문을 선택해 주세요" and selected_question != st.session_state.selected_question:
             st.session_state.selected_question = selected_question
-            st.session_state.message_list.append({"role":"user", "content":selected_question})
-            st.session_state.message_list.append({"role": "ai", "content": get_direct_ai_response(selected_question)})
-            st.session_state.eform_displayed = False
-            st.session_state.rform_displayed = False    
+            message_placeholder = st.empty()
+            with message_placeholder.container():
+                with st.chat_message("user"):
+                    st.write(selected_question)
+
+            with st.spinner("..."):
+                st.session_state.message_list.append({"role":"user", "content":selected_question})
+                st.session_state.message_list.append({"role": "ai", "content": get_direct_ai_response(selected_question)})
+                message_placeholder.empty()
+                st.session_state.eform_displayed = False
+                st.session_state.rform_displayed = False
 
     if st.session_state.prior_info_fm == "" or st.session_state.prior_info_dept == "" or st.session_state.prior_info_pos == "":
         with st.form("prior_info_form"):
@@ -143,13 +160,19 @@ if menu == "Home":
                     st.success("저장되었습니다.")
                     st.session_state.recommand_question_list = ai_recommand_questions(st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos)
                     st.session_state.recommad_displayed = True
-                    time.sleep(3)  # 3초 대기
+                    time.sleep(1.5)  # 3초 대기
                     st.rerun()
 
 
     for message in st.session_state.message_list:
         with st.chat_message(message["role"]):
             st.write(message["content"])
+
+    st.components.v1.html("""
+        <script>
+            window.scrollTo(0, document.documentElement.scrollHeight);
+        </script>
+        """, height=0)
 
     logger.log_custom("st.session_state.eform_displayed:%s",str(st.session_state.eform_displayed))
     if user_question := st.chat_input(placeholder="유라클에 대한 궁금한 내용들을 말씀해주세요!"):
