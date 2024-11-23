@@ -172,6 +172,8 @@ if menu == "Home":
             st.session_state.ebutton_displayed = True
             if "휴양소" in user_question :
                 st.session_state.rbutton_displayed = True
+            else :
+                st.session_state.rbutton_displayed = False
 
     # "이메일 보내기" 버튼 클릭
     if st.session_state.ebutton_displayed or st.session_state.rbutton_displayed :
