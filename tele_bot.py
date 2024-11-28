@@ -7,46 +7,12 @@ from dotenv import load_dotenv
 from llm import get_ai_response
 import streamlit as st
 import re
-import sys
-
+import threading
+import time
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
-# .env 파일 로드
 load_dotenv()
-
-# PID 파일 경로 설정 (임시 파일 경로로 설정)
-PID_FILE = '/tmp/telegram_bot.pid'
-
-# 중복 실행 방지 함수
-def is_already_running():
-    if os.path.isfile(PID_FILE):
-        with open(PID_FILE, 'r') as f:
-            pid = int(f.read().strip())
-        
-        # 프로세스가 아직 실행 중인지 확인
-        try:
-            os.kill(pid, 0)  # 프로세스가 실행 중이면 예외 발생 안 함
-        except OSError:
-            # 프로세스가 실행 중이 아니면 PID 파일 삭제
-            os.remove(PID_FILE)
-        else:
-            print("Bot is already running. Exiting...")
-            sys.exit(1)
-
-    # 현재 프로세스 ID를 PID 파일에 기록
-    with open(PID_FILE, 'w') as f:
-        f.write(str(os.getpid()))
-
-def cleanup():
-    # 종료 시 PID 파일 삭제
-    if os.path.isfile(PID_FILE):
-        os.remove(PID_FILE)
-
-import atexit
-atexit.register(cleanup)
-
-# 중복 실행 체크
-is_already_running()
 
 # MarkdownV2에서 이스케이프 처리가 필요한 문자
 escape_chars = r'\_*[]()~`>#+-=|{}.!'
@@ -54,8 +20,27 @@ escape_chars = r'\_*[]()~`>#+-=|{}.!'
 # 이스케이프 함수 정의
 def escape_markdown(text, version=2):
     if version == 2:
-        return re.sub(r'([{}])'.format(re.escape(escape_chars)), r'\\\1', text)
+        # 필요한 문자들을 모두 이스케이프 처리
+        pattern = r'([{}])'.format(re.escape(escape_chars))
+        return re.sub(pattern, r'\\\1', text)
     return text
+
+alarms = {}
+
+def send_alarm_message(chat_id, message):
+    """알람 메시지 전송"""
+    bot.sendMessage(chat_id, f"🔔 알람: {message}")
+
+def alarm_scheduler():
+    """알람 스케줄러 - 매 분마다 알람 체크"""
+    while True:
+        now = datetime.now().strftime("%H:%M")  # 현재 시간 (HH:MM)
+        for chat_id, alarm_list in alarms.items():
+            for alarm_time in alarm_list:
+                if alarm_time == now:  # 알람 시간 도달
+                    send_alarm_message(chat_id, f"지정된 시간 {alarm_time}입니다!")
+                    alarms[chat_id].remove(alarm_time)  # 알람을 제거
+        time.sleep(30)  # 1분 간격으로 실행
 
 def handler(msg):
     content_type, chat_Type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
@@ -76,26 +61,26 @@ def handler(msg):
                     filelist = tele_mode.get_dir_list(filepath)
                     bot.sendMessage(chat_id, filelist)
             elif command == "/weather" or command == "/날씨":
+                w = " ".join("삼성역")   
                 if args: 
                     w = " ".join(args)
                 else:
-                    w = "삼성역"    
                     bot.sendMessage(chat_id, "기본 날씨는 삼성역 입니다.")
                 weather = tele_mode.get_weather(w)
                 bot.sendMessage(chat_id, weather)
             elif command[0:4] == "/get" or command == "/파일":
                 filepath = " ".join(args)
                 logger.log_custom("filepath:\n%s", filepath)
-                if os.path.exists("./files/" + filepath):
+                if os.path.exists("./files/" +filepath):
                     try:
                         if command == "/getfile":
                             bot.sendDocument(chat_id, open("./files/" + filepath, "rb"))
                         elif command == "/getimage":
-                            bot.sendPhoto(chat_id, open("./files/" + filepath, "rb"))
+                            bot.sendPhoto(chat_id, open("./files/" +filepath, "rb"))
                         elif command == "/getaudio":
-                            bot.sendAudio(chat_id, open("./files/" + filepath, "rb"))
+                            bot.sendAudio(chat_id, open("./files/" +filepath, "rb"))
                         elif command == "/getvideo":
-                            bot.sendVideo(chat_id, open("./files/" + filepath, "rb"))
+                            bot.sendVideo(chat_id, open("./files/" +filepath, "rb"))
                     except Exception as e:
                         bot.sendMessage(chat_id, "파일 전송 실패 {}".format(e))
                 else:
@@ -116,19 +101,67 @@ def handler(msg):
                     bot.sendMessage(chat_id, "/dic keyword, keyword2")
                 else:
                     output = set_dic.add_entry_to_file(ws[0], ws[1])
-                    bot.sendMessage(chat_id, output)       
-        else:
+                    bot.sendMessage(chat_id, output)
+            elif command == "/setalarm" or command == "/알람":  # 알람 설정 명령어
+                try:
+                    _, time_str = str_message.split()  # /setalarm HH:MM
+                    datetime.strptime(time_str, "%H:%M")  # HH:MM 형식 확인
+                    if chat_id not in alarms:
+                        alarms[chat_id] = []
+                    alarms[chat_id].append(time_str)
+                    bot.sendMessage(chat_id, f"✅ 알람이 {time_str}으로 설정되었습니다.")
+                except ValueError:
+                    bot.sendMessage(chat_id, "❌ 시간 형식이 잘못되었습니다. /알람 HH:MM 형식으로 입력해주세요.")
+            
+            elif command == "/listalarm" or command == "/알람목록":  # 알람 목록 확인 명령어
+                if chat_id in alarms and alarms[chat_id]:
+                    alarm_list = "\n".join(alarms[chat_id])
+                    bot.sendMessage(chat_id, f"🔔 설정된 알람 목록:\n{alarm_list}")
+                else:
+                    bot.sendMessage(chat_id, "🔕 설정된 알람이 없습니다.")
+            
+            elif command == "/removealarm" or command == "/알람제거":  # 알람 제거 명령어
+                try:
+                    _, time_str = str_message.split()  # /removealarm HH:MM
+                    if chat_id in alarms and time_str in alarms[chat_id]:
+                        alarms[chat_id].remove(time_str)
+                        bot.sendMessage(chat_id, f"🗑️ 알람 {time_str}이 삭제되었습니다.")
+                    else:
+                        bot.sendMessage(chat_id, f"❌ {time_str} 알람이 존재하지 않습니다.")
+                except ValueError:
+                    bot.sendMessage(chat_id, "❌ 시간 형식이 잘못되었습니다. /알람제거 HH:MM 형식으로 입력해주세요.")
+        else :
             print(str_message)
-            if str_message.strip().find("날씨") > 0 :
-                tele_mode.get_weather(w)
+            args = str_message.split("날씨")
+            bot.sendMessage(chat_id, "대화 생성중입니다....")
+            if str_message.strip().find("날씨") >= 0 :
+                if args: 
+                    w = " ".join(args[0])
+                else:
+                    w = " ".join("삼성역")    
+                    bot.sendMessage(chat_id, "기본 날씨는 삼성역 입니다.")
+                weather = tele_mode.get_weather(w)
+                bot.sendMessage(chat_id, weather)
+            elif str_message.strip().find("파일") >= 0 :
+                bot.sendMessage(chat_id, "저장된 파일 정보를 알고 싶으면 '/목록' 이라고 입력 해주세요. \r\n 파일을 다운 받고 싶으면 '/getfile 파일명'라고 입력해주세요.")    
+            elif str_message.strip().find("알람") >= 0 :
+                bot.sendMessage(chat_id, "알람을 맞추고 싶으면 '/알람 HH:MM'라고 입력 해주세요. \r\n 설정된 알람 목록을 알고 싶으면 '/알람목록' 이라고 입력해주세요. \r\n 알람을 제거하고 싶으면 '/알람제거 HH:MM'라고 입력해주세요.")    
             else:    
-                bot.sendMessage(chat_id, "대화 생성중입니다....")
                 ai_response = get_ai_response(str_message) 
                 result_str2 = st.write_stream(ai_response)
                 # 데이터 이스케이프 처리
                 escaped_data = escape_markdown(result_str2)
                 bot.sendMessage(chat_id, str(escaped_data), parse_mode='MarkdownV2')
 
-# 텔레그램 봇 실행
 bot = telepot.Bot(os.getenv("TELEGRAM_TOKEN"))
 bot.message_loop(handler, run_forever=True)
+
+try:
+    scheduler_thread = threading.Thread(target=alarm_scheduler, daemon=True)
+    scheduler_thread.start()
+
+    print("텔레그램 봇이 실행 중입니다. Ctrl+C로 종료하세요.")
+    while True:
+        time.sleep(10)
+except KeyboardInterrupt:
+    print("\n❗ 프로그램이 종료되었습니다.")
