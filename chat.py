@@ -49,7 +49,7 @@ def send_email(sender_email, receiver_email, subject, body, smtp_server, smtp_po
         return f"메일 전송 중 오류가 발생했습니다: {str(e)}"
 
 def generate_random_key(length=16):
-        # 영문 대소문자 + 숫자 포함 랜덤 문자열 생성
+        # 영문 대소문자 + 숫자 포함 랜덤 문자열 생성 
         characters = string.ascii_letters + string.digits
         random_key = ''.join(random.choice(characters) for _ in range(length))
         return random_key
