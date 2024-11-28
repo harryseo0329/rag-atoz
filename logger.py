@@ -25,5 +25,5 @@ def log_error(self, message, *args):
 logging.Logger.log_custom = log_custom
 logging.Logger.log_error = log_error
 
-logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

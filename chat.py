@@ -15,7 +15,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import ssl
 
-import os
 import time
 from datetime import datetime
 import asyncio
@@ -23,9 +22,6 @@ import threading
 from streamlit.components.v1 import html
 
 load_dotenv()
-SENDER_EMAIL_ADDRESS = os.getenv('SENDER_EMAIL_ADDRESS') 
-SENDER_EMAIL_PASSWORD = os.getenv('SENDER_EMAIL_PASSWORD') 
-RECIEVER_EMAIL_ADDRESS = os.getenv('RECIEVER_EMAIL_ADDRESS') 
 
 # 이메일 보내는 함수
 def send_email(sender_email, receiver_email, subject, body, smtp_server, smtp_port, sender_password):
@@ -68,10 +64,6 @@ def getNextNextMonth():
     else:
         next_next_month = (current_year, current_month + 2)
     return f"{next_next_month[0]}년 {next_next_month[1]}월"
-
-def save_logs_in_thread(arr):
-    """로그 저장을 별도의 스레드에서 실행"""
-    asyncio.run(save_question(arr))
 
 st.set_page_config(page_title="A to Z Uracle", page_icon="./images/common/uracle_favicon.png", initial_sidebar_state="collapsed")
 
@@ -168,7 +160,7 @@ if menu == "Home":
                     st.success("저장되었습니다.")
                     st.session_state.recommand_question_list = ai_recommand_questions(st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos)
                     st.session_state.recommad_displayed = True
-                    time.sleep(1.5)  # 1.5초 대기
+                    time.sleep(1.5)  # 3초 대기
                     st.rerun()
 
 
@@ -194,8 +186,7 @@ if menu == "Home":
             all_meta_fields_filled = all([st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos]) 
 
             if all_meta_fields_filled:
-                #save_question([user_question, st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos])
-                threading.Thread(target=save_logs_in_thread, args=([user_question, st.session_state.get("prior_info_fm"), st.session_state.get("prior_info_dept"), st.session_state.get("prior_info_pos")],)).start()
+                save_question([user_question, st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos])
             
             ai_response = get_ai_response(user_question) 
             with st.chat_message("ai"):
@@ -235,7 +226,7 @@ if menu == "Home":
     if st.session_state.eform_displayed:
         # 이메일 발송 폼
         with st.form("email_form"):
-            receiver_email = st.text_input("수신자 이메일 주소", value=RECIEVER_EMAIL_ADDRESS, disabled=True)
+            receiver_email = st.text_input("수신자 이메일 주소", value="harryseo0329@uracle.co.kr", disabled=True)
             subject = st.text_input("이메일 제목", value="AtoZ 챗봇의 답변 내용이 부족하여 더 상세한 답변 요청드립니다.")
             last_user_message = st.session_state.message_list[-2]["content"] if len(st.session_state.message_list) > 1 else "질문이 없습니다."
             last_ai_response = st.session_state.message_list[-1]["content"] if len(st.session_state.message_list) > 0 else "답변이 없습니다."
@@ -259,10 +250,13 @@ if menu == "Home":
             submit_button = st.form_submit_button("메일 전송")
 
             if submit_button:
+                # SMTP 서버 설정 (예: Gmail)
+                smtp_server = "smtp.gmail.com"
+                smtp_port = 465  # SSL 포트
                 # 이메일 발송 함수 호출
-                result = send_email(SENDER_EMAIL_ADDRESS, receiver_email, subject, body, "smtp.gmail.com", 465, SENDER_EMAIL_PASSWORD)
+                result = send_email("harry0329.developer@gmail.com", receiver_email, subject, body, smtp_server, smtp_port, "deegbyaaffqfsrjz")
                 st.success(result)
-                time.sleep(1.5)  # 1.5초 대기
+                time.sleep(3)  # 3초 대기
                 st.session_state.ebutton_displayed = False
                 st.session_state.eform_displayed = False
                 st.rerun()
@@ -272,7 +266,7 @@ if menu == "Home":
         # 이메일 발송 폼
         with st.form("resort_email_form"):
             month = getNextNextMonth()
-            receiver_email = st.text_input("수신자 이메일 주소", value=RECIEVER_EMAIL_ADDRESS, disabled=True)
+            receiver_email = st.text_input("수신자 이메일 주소", value="harryseo0329@uracle.co.kr", disabled=True)
             subject = st.text_input("이메일 제목", value=f"속초 및 제주 휴양소 {month} 예약신청합니다.")
             pos = st.radio("휴양소", ["제주", "속초"])
             dept = st.text_input("부서", value="", placeholder="컨버전스개발실")
@@ -305,10 +299,13 @@ if menu == "Home":
                 if not all_fields_filled:
                     st.error("양식을 모두 채워서 작성해주세요.")
                 else:
+                    # SMTP 서버 설정 (예: Gmail)
+                    smtp_server = "smtp.gmail.com"
+                    smtp_port = 465  # SSL 포트
                     # 이메일 발송 함수 호출
-                    result = send_email(SENDER_EMAIL_ADDRESS, receiver_email, subject, body, "smtp.gmail.com", 465, SENDER_EMAIL_PASSWORD)
+                    result = send_email("harry0329.developer@gmail.com", receiver_email, subject, body, smtp_server, smtp_port, "deegbyaaffqfsrjz")
                     st.success(result)
-                    time.sleep(1.5)  # 1.5초 대기
+                    time.sleep(3)  # 3초 대기
                     st.session_state.rbutton_displayed = False
                     st.session_state.rform_displayed = False
                     st.rerun()
