@@ -64,29 +64,7 @@ def get_weather(where):
             w_list.append(w_string)
         
         # 최종 결과 문자열 값을 설정합니다.
-        weather = "{}℃\r\n{}\r\n{}".format(temperature, w_text, "\n".join(w_list))
-    return weather
-
-
-
-def get_weather_old(where):
-    weather = ""
-    url = "https://search.naver.com/search.naver?query={}+날씨".format(where)
-    print(url)
-    r = requests.get(url)
-    bs = BeautifulSoup(r.text, "lxml")
-    w_box = bs.select("div.today_area > div.main_info")
-
-    if len(w_box) > 0:
-        temperature = bs.select("span.todaytemp")
-        cast_text = bs.select("p.cast_txt")
-        indicator = bs.select("span.indicator")
-
-        if len(temperature) > 0 and len(cast_text) > 0 and len(indicator) > 0:
-            temperature = temperature[0].text.strip()
-            indicator = indicator[0].text.strip()
-            txt = cast_text[0].text.strip()
-            weather = "{}℃\r\n{}\r\n{}".format(temperature, indicator, txt)
+        weather = "오늘의 {}날씨 정보입니다.\r\n{}℃\r\n{}\r\n{}".format(where, temperature, w_text, "\n".join(w_list))
     return weather
 
 if __name__ == "__main__":
