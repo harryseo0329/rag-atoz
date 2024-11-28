@@ -1,5 +1,7 @@
 import os
+import uuid
 import subprocess
+import numpy as np
 import tempfile
 from pdf2image import convert_from_path
 from pptx import Presentation
@@ -15,6 +17,8 @@ import pandas as pd
 from docx import Document as DocxDocument
 import fitz  # PyMuPDF
 import platform
+from logger import logger
+import json
 
 # 환경 변수 로드
 load_dotenv()
@@ -43,6 +47,13 @@ def process_text_file(file_path):
         text = file.read()
     print(f"TXT 파일 내용:\n{text}\n{'-'*50}")
     return text
+
+def process_json_file(file_path):
+    """JSON 파일의 내용을 읽어 문자열로 반환합니다."""
+    with open(file_path, "r", encoding="utf-8") as file:
+        datalist = json.load(file)
+    print(f"JSON 파일 내용:\n{file}\n{'-'*50}")
+    return datalist
 
 def process_docx_file(file_path):
     """DOCX 파일의 각 단락을 읽어 문자열로 결합하여 반환하며, 파일명을 metadata에 추가합니다."""
@@ -154,6 +165,52 @@ def convert_pptx_to_pdf_images(pptx_path, save_dir="images/poppler"):
     os.remove(pdf_path)  # 임시 PDF 파일 삭제
     return image_paths
 
+def deptJson(datalist):
+    documents_to_upload = []
+    vectors_to_upload = []
+    for entry in datalist:
+        data = entry 
+        vector_id = str(uuid.uuid4())
+        
+        # 랜덤 3차원 임베딩 값 생성
+        vector_values = np.random.rand(3).tolist()
+    
+        # Document 객체 생성
+        docu = Document(
+            page_content=f"""
+            -{data['이름']} 사원정보:
+            {data["이름"]}님의 소속은 {data["소속"]} 입니다. 사원번호는 {data["사원번호"]} 이며, 
+            부서는 {data["부서명"]} 입니다. 직위(직급)은 {data["직위(직급)"]} 이며, 
+            직책은 {data["직책"]} 입니다. 휴대전화는 {data["연락처(휴대전화)"]} 이며,
+            이메일은 {data["이메일주소"]} 입니다.
+            """, 
+            metadata={
+                "이름": data["이름"],
+                "회사명": data["회사명"],
+                "부서명": data["부서명"],
+                "직위(직급)": data["직위(직급)"],
+                "직책": data["직책"],
+                "사원번호": data["사원번호"],
+                "연락처(휴대전화)": data["연락처(휴대전화)"],
+                "소속": data["소속"],
+                "이메일주소": data["이메일주소"],
+                "생년월일": data["생년월일"],
+                "내선전화번호": data["내선전화번호"],
+                "팩스번호": data["팩스번호"],
+                "source": "../dept-user-markdown-table.json",
+                "category": "사원정보",
+                "table_title": "사원정보 표",
+                "type": "markdown_table",
+                "updated": "2024.10.29",
+                "description": """이 표는 유라클, (주)지네트웍스, 에이네트웍스 등 3개 회사의 사원정보 표 입니다.
+                이름, 회사명, 부서명, 직위(직급), 직책, 사원번호, 연락처, 소속, 이메일, 내선번호 등의 정보가 있습니다.
+                """
+            }
+        )
+        documents_to_upload.append(docu)  # Document 리스트에 추가
+    return documents_to_upload
+    
+
 def process_and_store_document(uploaded_file, file_type):
     """파일을 읽어 Pinecone에 저장합니다. 파일 형식에 따라 적절한 처리 함수를 호출합니다."""
     try:
@@ -243,6 +300,45 @@ def process_and_store_document(uploaded_file, file_type):
             
             # 이미지 OCR 결과를 Document 객체로 생성
             documents = [Document(page_content=document_text, metadata={"source": file_name})]
+
+        elif file_type == "txt":
+            document_text =  process_text_file(temp_file_path)
+            print(f"텍스트 파일 내용:\n{document_text}\n{'-'*50}")
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            split_texts = text_splitter.split_text(document_text)
+            documents = [Document(page_content=text, metadata={"source": file_name}) for text in split_texts]
+
+        elif file_type == "json":
+            if file_name == 'dept-user-markdown-table.json':
+                datalist = process_json_file(temp_file_path)
+                documents = deptJson(datalist)
+            else:
+                datalist = process_json_file(temp_file_path)
+                 
+                # JSON 데이터가 리스트 형태일 경우 처리
+                if isinstance(datalist, list):
+                    documents = []
+                    for item in datalist:
+                        # JSON의 각 항목(item)을 텍스트와 메타데이터로 변환
+                        page_content = json.dumps(item, ensure_ascii=False, indent=4)
+                        metadata = {"source": file_name}
+
+                        # JSON 내부에 특정 키를 메타데이터로 추가 가능
+                        if isinstance(item, dict):
+                            metadata.update({key: item[key] for key in item.keys() if key != "content"})
+
+                        # Document 생성
+                        documents.append(Document(page_content=page_content, metadata=metadata))
+                
+                # JSON 데이터가 딕셔너리 형태일 경우 처리
+                elif isinstance(datalist, dict):
+                    page_content = json.dumps(datalist, ensure_ascii=False, indent=4)
+                    metadata = {"source": file_name}
+                    metadata.update(datalist)  # JSON의 키-값을 메타데이터로 추가
+                    documents = [Document(page_content=page_content, metadata=metadata)]
+
+                else:
+                    raise ValueError("지원하지 않는 JSON 데이터 형식입니다.")
 
         # Pinecone에 저장
         embeddings = UpstageEmbeddings(model="solar-embedding-1-large")
