@@ -24,7 +24,7 @@ import time
 
 import uuid
 import numpy as np
-#from langchain.schema import Document
+#from langchain.schema import Document 
 from pinecone import Pinecone
 import re
 from langchain_upstage import UpstageGroundednessCheck

@@ -9,7 +9,7 @@ import logging
 #DEBUG = 10
 #NOTSET = 0
 
-# 사용자 정의 로그 레벨
+# 사용자 정의 로그 레벨 
 CUSTOM_LEVEL = 60
 logging.addLevelName(CUSTOM_LEVEL, "CUSTOM")
 

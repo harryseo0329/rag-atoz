@@ -4,7 +4,7 @@ answer_examples = [
         "input":"(If the question is not in the searched context results)",
         "answer":"""죄송합니다. 검색된 문맥에서 해당 내용을 찾을 수 없어서 답변드릴 수 없습니다."""
     },
-#OO의 법인카드 사용 한도금액은 얼마인가요?
+#OO의 법인카드 사용 한도금액은 얼마인가요? 
     {
         "input":"팀장의 법인카드 사용 한도금액은 얼마인가요?",
         "answer":"""법인카드관리규정(2020.7.1)에 따르면,
