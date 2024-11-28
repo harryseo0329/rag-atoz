@@ -213,14 +213,16 @@ def deptJson(datalist):
 
 def process_and_store_document(uploaded_file, file_type):
     """파일을 읽어 Pinecone에 저장합니다. 파일 형식에 따라 적절한 처리 함수를 호출합니다."""
+    logger.log_custom("process_and_store_document 함수 호출")
     try:
         
-        # 원본 파일명을 저장
-        file_name = uploaded_file.name
-        
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_type}") as temp_file:
-            temp_file.write(uploaded_file.read())
-            temp_file_path = temp_file.name
+        # 파일명 설정
+        file_name = uploaded_file.name if hasattr(uploaded_file, 'name') else "text_input"
+
+        if file_type != "text":
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_type}") as temp_file:
+                temp_file.write(uploaded_file.read())
+                temp_file_path = temp_file.name
 
         # Document 객체를 저장할 리스트
         documents = []
@@ -339,6 +341,15 @@ def process_and_store_document(uploaded_file, file_type):
 
                 else:
                     raise ValueError("지원하지 않는 JSON 데이터 형식입니다.")
+
+
+        elif file_type == "text":   
+            # 텍스트 데이터를 직접 처리
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+            split_texts = text_splitter.split_text(uploaded_file)  # uploaded_file이 텍스트 데이터
+            documents = [Document(page_content=text, metadata={"source": "text"}) for text in split_texts]
+
+            
 
         # Pinecone에 저장
         embeddings = UpstageEmbeddings(model="solar-embedding-1-large")
