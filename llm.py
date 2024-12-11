@@ -321,19 +321,25 @@ async def save_question(qustion_arr):
         },
         include_metadata=True  # 메타데이터 포함
     )
-    question_id = str(uuid.uuid4())
+    question_id = ""
     new_frequency = 0
     # 기존 질문이 있으면 빈도수 증가
     if existing_question and existing_question['matches']:
         existing_metadata = existing_question['matches'][0]['metadata']
         score = existing_question['matches'][0]['score']
-        if score >= 0.8:
+        if score >= 0.85:
             question_id = existing_question['matches'][0]['id']
             new_frequency = existing_metadata['frequency'] + 1
+            qustion_arr[0] = existing_metadata['question']
+            qustion_arr[1] = existing_metadata['fm']
+            qustion_arr[2] = existing_metadata['dept']
+            qustion_arr[3] = existing_metadata['pos']
         else:
+            question_id = str(uuid.uuid4())
             new_frequency = 1
     else:
         # 새로운 질문은 빈도수 1로 설정
+        question_id = str(uuid.uuid4())
         new_frequency = 1
 
     logger.log_custom("async def save_question() 질문 저장( ID: %s )", question_id)    
