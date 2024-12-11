@@ -73,6 +73,20 @@ def save_logs_in_thread(arr):
     """로그 저장을 별도의 스레드에서 실행"""
     asyncio.run(save_question(arr))
 
+def scroll_to_bottom():
+        st.components.v1.html(f"""
+            <script>
+                console.log("go to bottom");
+                var ifr = window.parent.document.querySelectorAll('[data-testid="stIFrame"]');
+                for(var i=0; i<ifr.length; i++){{
+                    ifr[i].parentElement.style.display = "none";
+                }}
+                setTimeout(function(){{
+                    window.parent.document.querySelectorAll('[data-testid="stAppScrollToBottomContainer"]')[0].scrollTo(0, window.parent.document.querySelectorAll('[data-testid="stAppScrollToBottomContainer"]')[0].scrollHeight)
+                }}, 300);
+            </script>
+        """, 0, 0, False)
+
 st.set_page_config(page_title="A to Z Uracle", page_icon="./images/common/uracle_favicon.png", initial_sidebar_state="collapsed")
 
 # 메뉴 선택
@@ -134,17 +148,10 @@ if menu == "Home":
         selected_question = st.selectbox("📚 AI기반으로 성별, 부서, 직책 맞는 질문을 추천해드립니다.", st.session_state.recommand_question_list, index=0)
         if selected_question != "질문을 선택해 주세요" and selected_question != st.session_state.selected_question:
             st.session_state.selected_question = selected_question
-            message_placeholder = st.empty()
-            with message_placeholder.container():
-                with st.chat_message("user"):
-                    st.write(selected_question)
-
-            with st.spinner("..."):
-                st.session_state.message_list.append({"role":"user", "content":selected_question})
-                st.session_state.message_list.append({"role": "ai", "content": get_direct_ai_response(selected_question)})
-                message_placeholder.empty()
-                st.session_state.eform_displayed = False
-                st.session_state.rform_displayed = False
+            st.session_state.message_list.append({"role":"user", "content":selected_question})
+            st.session_state.message_list.append({"role": "ai", "content": "", "response_yn" : "n", "select_question": selected_question})
+            st.session_state.eform_displayed = False
+            st.session_state.rform_displayed = False
 
     if st.session_state.prior_info_fm == "" or st.session_state.prior_info_dept == "" or st.session_state.prior_info_pos == "":
         with st.form("prior_info_form"):
@@ -173,14 +180,17 @@ if menu == "Home":
 
 
     for message in st.session_state.message_list:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
-
-    st.components.v1.html("""
-        <script>
-            window.scrollTo(0, document.documentElement.scrollHeight);
-        </script>
-        """, height=0)
+        if message["role"] == "ai" and message["response_yn"] == "n":
+            with st.spinner("..."):
+                scroll_to_bottom()
+                message["content"] = get_direct_ai_response(message["select_question"])
+                message["response_yn"] = "y"
+                with st.chat_message("ai"):
+                    st.write(message["content"])
+                    scroll_to_bottom()
+        else:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
 
     logger.log_custom("st.session_state.eform_displayed:%s",str(st.session_state.eform_displayed))
     if user_question := st.chat_input(placeholder="유라클에 대한 궁금한 내용들을 말씀해주세요!"):
@@ -200,7 +210,7 @@ if menu == "Home":
             ai_response = get_ai_response(user_question) 
             with st.chat_message("ai"):
                 ai_message = st.write_stream(ai_response)
-            st.session_state.message_list.append({"role":"ai", "content":ai_message})
+            st.session_state.message_list.append({"role":"ai", "content":ai_message, "response_yn":"y"})
             st.session_state.ebutton_displayed = True
             if "휴양소" in user_question :
                 st.session_state.rbutton_displayed = True
