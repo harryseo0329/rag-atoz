@@ -157,7 +157,7 @@ if menu == "Home":
         with st.form("prior_info_form"):
             prior_info_fm = st.radio("성별", ["남성", "여성"])
             prior_info_dept = st.text_input("부서", value="", placeholder="컨버전스개발실")
-            prior_info_pos = st.text_input("직급", value="", placeholder="과장(선임)")
+            prior_info_pos = st.radio("직급", ["사원(연구원)", "대리(주임)", "과장(선임)", "차장(책임)", "부장(수석)", "임원"])#st.text_input("직급", value="", placeholder="과장(선임)")
 
             # 제출 버튼
             submit_button = st.form_submit_button("저장")
