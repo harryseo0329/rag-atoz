@@ -274,6 +274,7 @@ def get_rag_chain():
     return conversaional_rag_chain
 
 def get_ai_response(user_message, session_id):
+    init_session_history(session_id)
     logger.log_custom("현재 세션 ID : %s", session_id) 
     dictionary_chain = get_dictionary_chain()
 
