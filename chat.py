@@ -1,6 +1,6 @@
 import streamlit as st
 from dotenv import load_dotenv
-from llm import get_ai_response, get_direct_ai_response, save_question, ai_recommand_questions
+from llm import get_ai_response, get_direct_ai_response, save_question, ai_recommand_questions, init_session_history
 import base64
 import importlib
 
@@ -22,10 +22,17 @@ import asyncio
 import threading
 from streamlit.components.v1 import html
 
+import uuid
+
 load_dotenv()
 SENDER_EMAIL_ADDRESS = os.getenv('SENDER_EMAIL_ADDRESS') 
 SENDER_EMAIL_PASSWORD = os.getenv('SENDER_EMAIL_PASSWORD') 
 RECIEVER_EMAIL_ADDRESS = os.getenv('RECIEVER_EMAIL_ADDRESS') 
+
+def get_session_id():
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())  # 고유 ID 생성
+    return st.session_state.session_id
 
 # 이메일 보내는 함수
 def send_email(sender_email, receiver_email, subject, body, smtp_server, smtp_port, sender_password):
@@ -105,6 +112,8 @@ if menu == "Home":
     )
     st.caption("Uracle에 대한 모든것!")
 
+    get_session_id()
+
     if 'recommad_displayed' not in st.session_state:
         st.session_state.recommad_displayed = False
 
@@ -183,7 +192,7 @@ if menu == "Home":
         if message["role"] == "ai" and message["response_yn"] == "n":
             with st.spinner("..."):
                 scroll_to_bottom()
-                message["content"] = get_direct_ai_response(message["select_question"])
+                message["content"] = get_direct_ai_response(message["select_question"], get_session_id())
                 message["response_yn"] = "y"
                 with st.chat_message("ai"):
                     st.write(message["content"])
@@ -207,15 +216,18 @@ if menu == "Home":
                 #save_question([user_question, st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos])
                 threading.Thread(target=save_logs_in_thread, args=([user_question, st.session_state.get("prior_info_fm"), st.session_state.get("prior_info_dept"), st.session_state.get("prior_info_pos")],)).start()
             
-            ai_response = get_ai_response(user_question) 
-            with st.chat_message("ai"):
-                ai_message = st.write_stream(ai_response)
-            st.session_state.message_list.append({"role":"ai", "content":ai_message, "response_yn":"y"})
-            st.session_state.ebutton_displayed = True
-            if "휴양소" in user_question :
-                st.session_state.rbutton_displayed = True
-            else :
-                st.session_state.rbutton_displayed = False
+            if "/세션초기화" in user_question :
+                init_session_history()
+            else:    
+                ai_response = get_ai_response(user_question, get_session_id()) 
+                with st.chat_message("ai"):
+                    ai_message = st.write_stream(ai_response)
+                st.session_state.message_list.append({"role":"ai", "content":ai_message, "response_yn":"y"})
+                st.session_state.ebutton_displayed = True
+                if "휴양소" in user_question :
+                    st.session_state.rbutton_displayed = True
+                else :
+                    st.session_state.rbutton_displayed = False
 
     # "이메일 보내기" 버튼 클릭
     if st.session_state.ebutton_displayed or st.session_state.rbutton_displayed :

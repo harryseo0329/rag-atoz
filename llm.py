@@ -66,6 +66,10 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
 
+def init_session_history(session_id: str):
+    if session_id in store:
+        store[session_id] = None    
+
 
 #retriever
 def get_retriever():
@@ -269,7 +273,8 @@ def get_rag_chain():
     logger.log_custom("get_rag_chain() 소요시간 : %s", elapsed_time)    
     return conversaional_rag_chain
 
-def get_ai_response(user_message):
+def get_ai_response(user_message, session_id):
+    logger.log_custom("현재 세션 ID : %s", session_id) 
     dictionary_chain = get_dictionary_chain()
 
     # Add invoke logging
@@ -287,11 +292,12 @@ def get_ai_response(user_message):
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
     #ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd1123"}})
-    ai_response = atoz_chain.invoke({"question":user_message},config={"configurable":{"session_id":"abcd123"}})
+    ai_response = atoz_chain.invoke({"question":user_message},config={"configurable":{"session_id":session_id}})
     
     return stream_response(ai_response) #ai_response
 
-def get_direct_ai_response(user_message):
+def get_direct_ai_response(user_message, session_id):
+    logger.log_custom("현재 세션 ID : %s", session_id) 
     dictionary_chain = get_dictionary_chain()
 
     # Add invoke logging
@@ -304,7 +310,7 @@ def get_direct_ai_response(user_message):
 
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
-    ai_response = atoz_chain.invoke({"question": user_message}, config={"configurable": {"session_id": "abcd123"}})
+    ai_response = atoz_chain.invoke({"question": user_message}, config={"configurable": {"session_id": session_id}})
 
     return ai_response
 
