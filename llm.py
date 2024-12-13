@@ -90,7 +90,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
 
 def init_session_history(session_id: str):
     if session_id in store:
-        store[session_id] = None    
+        store[session_id] = ChatMessageHistory()
 
 
 #retriever
