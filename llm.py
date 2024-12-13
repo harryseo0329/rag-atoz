@@ -29,6 +29,8 @@ from pinecone import Pinecone
 import re
 from langchain_upstage import UpstageGroundednessCheck
 
+from langchain_core.messages.human import HumanMessage
+
 load_dotenv()
 
 #Upstage LLM
@@ -48,7 +50,27 @@ question_index_description = pc.describe_index(os.environ.get("QUESTION_INDEX_NA
 question_index_host = question_index_description.host
 question_index = pc.Index(host=question_index_host)
 
+groundedness_check = UpstageGroundednessCheck() 
+
 store = {}
+
+#grounded 검사
+def grounded_check(retrieved_content, answer):
+    start_time = time.time()
+    #groundedness 체크
+    groundedness_check = UpstageGroundednessCheck()
+    request_input = {
+        "context": retrieved_content,
+        "answer": answer,
+    }
+
+    response = groundedness_check.invoke(request_input)
+    logger.log_custom("groundedness_check : %s", response)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    logger.log_custom("grounded_check() 소요시간 : %s", elapsed_time)
+    return response
 
 def stream_response(response: str):
     # 정규식을 사용해 단어, 공백, 특수문자, 줄바꿈을 분리
@@ -150,7 +172,7 @@ def get_dictionary_chain():
     prompt = ChatPromptTemplate.from_template(f"""
         First, review the user's question and refer to our dictionary to modify the user's question if necessary.
         If no modification is needed, return the original question as it is.
-        In such cases, simply return the question without any changes.
+        In such cases, simply return the original question only, without any additional text or explanation.
         
         dictionary: {myDictionary}                        
                                             
@@ -233,23 +255,12 @@ def get_rag_chain():
         logger.log_custom("[ ANSWER ] Output from question_answer_chain(검사전):\n%s", output)
         logger.log_custom("--------------------------------------------------------------------")
 
-        
-        #groundedness 체크
-        groundedness_check = UpstageGroundednessCheck()
-        request_input = {
-            "context": retrieved_content,
-            "answer": output,
-        }
-        start_time2 = time.time()
-        response = groundedness_check.invoke(request_input)
-        end_time2 = time.time()
-        elapsed_time2 = end_time2 - start_time2
-        logger.log_custom("groundedness_check.invoke() 소요시간 : %s", elapsed_time2)
+        #grounded 검사
+        retrieved_content_str = " ".join(retrieved_content.split())
+        answer_str = " ".join(output.split())
+        result = grounded_check(retrieved_content_str, answer_str)
 
-        logger.log_custom("-----------groundedness_check-----------")
-        logger.log_custom(response)
-
-        if response == "notGrounded" :
+        if result == "notGrounded" :
             output = "죄송합니다. 검색된 문맥에서 해당 내용을 찾을 수 없어서 답변드릴 수 없습니다."
             logger.log_custom("[ ANSWER ] Output from question_answer_chain(검사후):\n%s", output)
             logger.log_custom("--------------------------------------------------------------------")
@@ -274,7 +285,6 @@ def get_rag_chain():
     return conversaional_rag_chain
 
 def get_ai_response(user_message, session_id):
-    init_session_history(session_id)
     logger.log_custom("현재 세션 ID : %s", session_id) 
     dictionary_chain = get_dictionary_chain()
 
@@ -295,6 +305,17 @@ def get_ai_response(user_message, session_id):
     #ai_response = atoz_chain.stream({"question":global_question},config={"configurable":{"session_id":"abcd1123"}})
     ai_response = atoz_chain.invoke({"question":user_message},config={"configurable":{"session_id":session_id}})
     
+    #notGrounded로 인한 답변 ChatHistory에서 제거
+    if store[session_id] and store[session_id].messages and store[session_id].messages[-1].content == "죄송합니다. 검색된 문맥에서 해당 내용을 찾을 수 없어서 답변드릴 수 없습니다." :
+        logger.log_custom("notGrounded로 인한 답변의 ChatHistory는 저장하지 않습니다..ChatHistory에서 HumanMessage, AIMessage 삭제!")
+        store[session_id].messages.pop()
+        if store[session_id] and store[session_id].messages and isinstance(store[session_id].messages[-1], HumanMessage):  # 리스트가 비어있지 않고 마지막이 HumanMessage라면
+            store[session_id].messages.pop()  # 해당 HumanMessage 제거
+
+    #7개 이상의 질의/응답 히스토리가 생긴경우 첫번째 질의/응답 삭제
+    if store[session_id] and store[session_id].messages and len(store[session_id].messages) > 6:
+        del store[session_id].messages[:2]
+    
     return stream_response(ai_response) #ai_response
 
 def get_direct_ai_response(user_message, session_id):
@@ -312,6 +333,17 @@ def get_direct_ai_response(user_message, session_id):
     rag_chain = get_rag_chain()
     atoz_chain = {"input":dictionary_chain_with_logging} | rag_chain
     ai_response = atoz_chain.invoke({"question": user_message}, config={"configurable": {"session_id": session_id}})
+
+    #notGrounded로 인한 답변 ChatHistory에서 제거
+    if store[session_id] and store[session_id].messages and store[session_id].messages[-1].content == "죄송합니다. 검색된 문맥에서 해당 내용을 찾을 수 없어서 답변드릴 수 없습니다." :
+        logger.log_custom("notGrounded로 인한 답변의 ChatHistory는 저장하지 않습니다..ChatHistory에서 HumanMessage, AIMessage 삭제!")
+        store[session_id].messages.pop()
+        if store[session_id] and store[session_id].messages and isinstance(store[session_id].messages[-1], HumanMessage):  # 리스트가 비어있지 않고 마지막이 HumanMessage라면
+            store[session_id].messages.pop()  # 해당 HumanMessage 제거
+    
+    #7개 이상의 질의/응답 히스토리가 생긴경우 첫번째 질의/응답 삭제
+    if store[session_id] and store[session_id].messages and len(store[session_id].messages) > 6:
+        del store[session_id].messages[:2]
 
     return ai_response
 

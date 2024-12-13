@@ -216,18 +216,16 @@ if menu == "Home":
                 #save_question([user_question, st.session_state.prior_info_fm, st.session_state.prior_info_dept, st.session_state.prior_info_pos])
                 threading.Thread(target=save_logs_in_thread, args=([user_question, st.session_state.get("prior_info_fm"), st.session_state.get("prior_info_dept"), st.session_state.get("prior_info_pos")],)).start()
             
-            if "/세션초기화" in user_question :
-                init_session_history()
-            else:    
-                ai_response = get_ai_response(user_question, get_session_id()) 
-                with st.chat_message("ai"):
-                    ai_message = st.write_stream(ai_response)
-                st.session_state.message_list.append({"role":"ai", "content":ai_message, "response_yn":"y"})
-                st.session_state.ebutton_displayed = True
-                if "휴양소" in user_question :
-                    st.session_state.rbutton_displayed = True
-                else :
-                    st.session_state.rbutton_displayed = False
+            ai_response = get_ai_response(user_question, get_session_id()) 
+            with st.chat_message("ai"):
+                ai_message = st.write_stream(ai_response)
+            st.session_state.message_list.append({"role":"ai", "content":ai_message, "response_yn":"y"})
+            st.session_state.ebutton_displayed = True
+            if "휴양소" in user_question :
+                st.session_state.rbutton_displayed = True
+            else :
+                st.session_state.rbutton_displayed = False   
+                
 
     # "이메일 보내기" 버튼 클릭
     if st.session_state.ebutton_displayed or st.session_state.rbutton_displayed :
