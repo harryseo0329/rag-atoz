@@ -10,6 +10,7 @@ import re
 import threading
 import time
 from datetime import datetime
+import uuid
 logger = logging.getLogger(__name__)
 
 load_dotenv()
@@ -24,6 +25,9 @@ def escape_markdown(text, version=2):
         pattern = r'([{}])'.format(re.escape(escape_chars))
         return re.sub(pattern, r'\\\1', text)
     return text
+
+def get_session_id():
+    return str(uuid.uuid4())  # 고유 ID 생성
 
 alarms = {}
 
@@ -147,7 +151,7 @@ def handler(msg):
             elif str_message.strip().find("알람") >= 0 :
                 bot.sendMessage(chat_id, "알람을 맞추고 싶으면 '/알람 HH:MM'라고 입력 해주세요. \r\n 설정된 알람 목록을 알고 싶으면 '/알람목록' 이라고 입력해주세요. \r\n 알람을 제거하고 싶으면 '/알람제거 HH:MM'라고 입력해주세요.")    
             else:    
-                ai_response = get_ai_response(str_message) 
+                ai_response = get_ai_response(str_message, get_session_id()) 
                 result_str2 = st.write_stream(ai_response)
                 # 데이터 이스케이프 처리
                 escaped_data = escape_markdown(result_str2)
