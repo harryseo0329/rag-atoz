@@ -232,13 +232,14 @@ def get_rag_chain():
         logger.log_custom("=================================================================================================")
         logger.log_custom("[ BASE_DATA( context ) ] Invoking question_answer_chain with input:\n%s", input_data["context"])
         logger.log_custom("=================================================================================================")
+        logger.log_custom("image_path:%s",input_data)
         retrieved_content = ""   
         answer_image = ""
         k = 0
         for doc in input_data["context"]:
             retrieved_content += doc.page_content+"\n"
             image_path = doc.metadata.get("image_path")
-            if k == 0 and image_path:
+            if k == 0 and image_path and "교통비" in input_data["input"]:
                 logger.log_custom("image_path:%s",image_path)
                 if answer_image == "":
                     answer_image = image_path
