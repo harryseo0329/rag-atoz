@@ -205,7 +205,6 @@ def get_rag_chain():
         "Do not use external internet data, do not search the web, and do not access any external databases or external sources. "
         "If the provided context does not contain enough information, explicitly say \"I don’t know.\" "
         "Use three sentences maximum and keep the answer concise. "
-        "And if there is \"image_path\" in the metadata of retrieved context to answer, convert the URL value to a markdown image and add it to the end of the answer."
         "And if there is markdown table in your answer, please show it as a table."
         "And if there is a markdown-image that can be used as a reference in the answer, please show the Markdown image in your answer."
         "\n\n"
@@ -232,7 +231,7 @@ def get_rag_chain():
         logger.log_custom("=================================================================================================")
         logger.log_custom("[ BASE_DATA( context ) ] Invoking question_answer_chain with input:\n%s", input_data["context"])
         logger.log_custom("=================================================================================================")
-        logger.log_custom("image_path:%s",input_data)
+        
         retrieved_content = ""   
         answer_image = ""
         k = 0
