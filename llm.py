@@ -240,7 +240,7 @@ def get_rag_chain():
             image_path = doc.metadata.get("image_path")
             if image_path:
                 logger.log_custom("image_path:%s",image_path)
-                if answer_image != "":
+                if answer_image == "":
                     answer_image = image_path
             
         start_time1 = time.time()
