@@ -74,11 +74,13 @@ def grounded_check(retrieved_content, answer):
 
 def stream_response(response: str):
     # 정규식을 사용해 단어, 공백, 특수문자, 줄바꿈을 분리
-    tokens = re.findall(r'\S+|\n', response)
+    tokens = re.findall(r'\S+|\n|\t', response)
 
     for token in tokens:
         if token == "\n":  # 줄바꿈 처리
             yield "\n"
+        elif token == "\t":  # 탭 처리
+            yield "\t"
         else:
             yield token + " "  # 단어 또는 특수문자 처리
         time.sleep(0.015)  # 딜레이 추가
